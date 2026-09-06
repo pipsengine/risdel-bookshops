@@ -1,7 +1,19 @@
-import { google, sheets_v4 } from "googleapis";
 import { ConfigurationError, IntegrationError } from "@/lib/errors";
 import { requireSheetsEnv } from "./sheets.mapper";
 import { SheetsCache } from "./sheets.cache";
+
+type SheetsApi = {
+  spreadsheets: {
+    get: (args: Record<string, unknown>) => Promise<{ data: any }>;
+    batchUpdate: (args: Record<string, unknown>) => Promise<{ data: any }>;
+    values: {
+      get: (args: Record<string, unknown>) => Promise<{ data: any }>;
+      batchGet: (args: Record<string, unknown>) => Promise<{ data: any }>;
+      update: (args: Record<string, unknown>) => Promise<{ data: any }>;
+      append: (args: Record<string, unknown>) => Promise<{ data: any }>;
+    };
+  };
+};
 
 type LogEvent =
   | "Read"
@@ -32,7 +44,7 @@ async function sleep(ms: number) {
 }
 
 export class GoogleSheetsClient {
-  private sheets: sheets_v4.Sheets | null = null;
+  private sheets: SheetsApi | null = null;
   readonly cache: SheetsCache;
   readonly spreadsheetId: string;
   private lastSuccessfulReadAt?: string;
@@ -47,16 +59,17 @@ export class GoogleSheetsClient {
     return this.lastSuccessfulReadAt;
   }
 
-  private async api(): Promise<sheets_v4.Sheets> {
+  private async api(): Promise<SheetsApi> {
     if (this.sheets) return this.sheets;
     const env = requireSheetsEnv();
     try {
+      const { google } = await import("googleapis");
       const auth = new google.auth.JWT({
         email: env.clientEmail,
         key: env.privateKey,
         scopes: ["https://www.googleapis.com/auth/spreadsheets"]
       });
-      this.sheets = google.sheets({ version: "v4", auth });
+      this.sheets = google.sheets({ version: "v4", auth }) as unknown as SheetsApi;
       return this.sheets;
     } catch (error) {
       throw new IntegrationError("Google authorization failure.", {
@@ -106,7 +119,8 @@ export class GoogleSheetsClient {
 
   async listSheetTitles(): Promise<string[]> {
     const meta = await this.getSpreadsheetMeta();
-    return (meta.sheets || [])
+    const sheets = (meta.sheets || []) as Array<{ properties?: { title?: string } }>;
+    return sheets
       .map((s) => s.properties?.title)
       .filter((t): t is string => Boolean(t));
   }
@@ -157,7 +171,8 @@ export class GoogleSheetsClient {
 
   private async freezeHeader(title: string) {
     const meta = await this.getSpreadsheetMeta();
-    const sheet = (meta.sheets || []).find((s) => s.properties?.title === title);
+    const sheets = (meta.sheets || []) as Array<{ properties?: { title?: string; sheetId?: number } }>;
+    const sheet = sheets.find((s) => s.properties?.title === title);
     const sheetId = sheet?.properties?.sheetId;
     if (sheetId === undefined || sheetId === null) return;
     const api = await this.api();

@@ -1,8 +1,6 @@
 import type { DataProvider } from "@/data/contracts/repositories";
 import type { DataProviderName } from "@/data/contracts/types";
 import { ConfigurationError } from "@/lib/errors";
-import { GoogleSheetsProvider } from "@/data/providers/google-sheets/google-sheets.provider";
-import { SqlServerProvider } from "@/data/providers/sql-server/sql-server.provider";
 
 let cached: DataProvider | null = null;
 
@@ -19,16 +17,24 @@ export function getConfiguredProviderName(): DataProviderName {
 export function getDataProvider(): DataProvider {
   if (cached) return cached;
   const name = getConfiguredProviderName();
+  let provider: DataProvider;
+
   if (name === "google-sheets") {
-    cached = new GoogleSheetsProvider();
+    // Lazy require keeps googleapis off the critical Next compile path until runtime.
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const { GoogleSheetsProvider } = require("./providers/google-sheets/google-sheets.provider");
+    provider = new GoogleSheetsProvider();
   } else if (name === "sql-server") {
-    cached = new SqlServerProvider();
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const { SqlServerProvider } = require("./providers/sql-server/sql-server.provider");
+    provider = new SqlServerProvider();
   } else {
     throw new ConfigurationError(
       "PostgreSQL provider is reserved for a future release. Use google-sheets or sql-server."
     );
   }
-  return cached;
+  cached = provider;
+  return provider;
 }
 
 export function resetDataProvider(): void {

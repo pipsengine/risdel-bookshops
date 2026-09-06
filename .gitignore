@@ -1,5 +1,6 @@
 node_modules/
 .next/
+build-out/
 out/
 .env
 .env.local
@@ -16,6 +17,7 @@ credentials.json
 **/credentials*.json
 **/service-account*.json
 **/*-service-account.json
+scripts/*.json
 *.pem
 tsconfig.tsbuildinfo
 .DS_Store

@@ -35,6 +35,7 @@ foreach ($name in @(".env.production.local", ".env.local", ".env")) {
 
 $env:PORT = "3000"
 $env:HOSTNAME = "127.0.0.1"
+$env:NODE_PATH = Join-Path $root "node_modules"
 Set-Location $standalone
 Write-Host "Starting Risdel Books (production) at http://127.0.0.1:3000"
 Write-Host "IIS should reverse-proxy to this process. Stop with Ctrl+C"

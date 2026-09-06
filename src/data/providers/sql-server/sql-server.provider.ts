@@ -74,6 +74,7 @@ export class SqlServerProvider implements DataProvider {
   userSessions = {
     findById: async (): Promise<UserSession | null> => notReady("userSessions"),
     findByTokenHash: async (): Promise<UserSession | null> => notReady("userSessions"),
+    listAll: async (): Promise<UserSession[]> => notReady("userSessions"),
     create: async (): Promise<UserSession> => notReady("userSessions"),
     revoke: async (): Promise<void> => notReady("userSessions"),
     revokeAllForUser: async (): Promise<void> => notReady("userSessions")

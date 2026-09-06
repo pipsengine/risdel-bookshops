@@ -101,6 +101,7 @@ export interface RolePermissionRepository {
 export interface UserSessionRepository {
   findById(id: string): Promise<UserSession | null>;
   findByTokenHash(hash: string): Promise<UserSession | null>;
+  listAll(): Promise<UserSession[]>;
   create(data: Omit<UserSession, "id" | "createdAt"> & { id?: string }): Promise<UserSession>;
   revoke(id: string): Promise<void>;
   revokeAllForUser(userId: string): Promise<void>;

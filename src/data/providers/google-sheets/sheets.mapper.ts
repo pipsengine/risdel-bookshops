@@ -87,14 +87,64 @@ export function maskSpreadsheetId(id: string | undefined): string | undefined {
   return `${id.slice(0, 4)}…${id.slice(-4)}`;
 }
 
+/** Normalise PEM from Vercel/dotenv (quotes, escaped newlines, base64). */
+function normalizePrivateKeyPem(raw: string): string {
+  let key = raw.trim();
+  if (
+    (key.startsWith('"') && key.endsWith('"')) ||
+    (key.startsWith("'") && key.endsWith("'"))
+  ) {
+    key = key.slice(1, -1).trim();
+  }
+  key = key
+    .replace(/\\r\\n/g, "\n")
+    .replace(/\\n/g, "\n")
+    .replace(/\r\n/g, "\n")
+    .replace(/\r/g, "\n");
+
+  // Single-line PEM pasted without newlines — rebuild standard PEM line breaks.
+  if (!key.includes("\n") && /BEGIN [A-Z0-9 ]+PRIVATE KEY/.test(key)) {
+    const match = key.match(
+      /-----BEGIN ([A-Z0-9 ]+PRIVATE KEY)-----(.+?)-----END \1-----/
+    );
+    if (match) {
+      const label = match[1];
+      const body = match[2].replace(/\s+/g, "");
+      const lines = body.match(/.{1,64}/g) || [];
+      key = [`-----BEGIN ${label}-----`, ...lines, `-----END ${label}-----`].join(
+        "\n"
+      );
+    }
+  }
+
+  if (!/BEGIN [A-Z0-9 ]*PRIVATE KEY/.test(key)) {
+    throw new ConfigurationError(
+      "GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY is not a valid PEM key. On Vercel use quoted value with \\n newlines, or set GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY_BASE64."
+    );
+  }
+  return key;
+}
+
 export function getGooglePrivateKey(): string {
+  const b64 = process.env.GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY_BASE64?.trim();
+  if (b64) {
+    try {
+      return normalizePrivateKeyPem(Buffer.from(b64, "base64").toString("utf8"));
+    } catch (error) {
+      if (error instanceof ConfigurationError) throw error;
+      throw new ConfigurationError(
+        "GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY_BASE64 could not be decoded as a PEM private key."
+      );
+    }
+  }
+
   const raw = process.env.GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY;
   if (!raw) {
     throw new ConfigurationError(
       "Google Sheets is configured as the active data provider, but GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY is missing."
     );
   }
-  return raw.replace(/\\n/g, "\n");
+  return normalizePrivateKeyPem(raw);
 }
 
 export function requireSheetsEnv(): {

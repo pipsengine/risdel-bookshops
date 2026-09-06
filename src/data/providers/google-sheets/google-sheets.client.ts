@@ -72,9 +72,12 @@ export class GoogleSheetsClient {
       this.sheets = google.sheets({ version: "v4", auth }) as unknown as SheetsApi;
       return this.sheets;
     } catch (error) {
-      throw new IntegrationError("Google authorization failure.", {
-        reason: error instanceof Error ? error.message : "unknown"
-      });
+      const reason = error instanceof Error ? error.message : "unknown";
+      logProvider("Failure", "google-auth", { reason });
+      throw new IntegrationError(
+        "Google authorization failure. On Vercel, fix GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY (quoted PEM with \\n newlines) or set GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY_BASE64, and confirm GOOGLE_SERVICE_ACCOUNT_EMAIL matches that key.",
+        { reason }
+      );
     }
   }
 
@@ -181,10 +184,22 @@ export class GoogleSheetsClient {
 
   private async ensureHeaders(title: string, headers: string[]) {
     const existing = await this.readRange(`${title}!1:1`);
-    const row = existing[0] || [];
+    const row = (existing[0] || []).map((h) => String(h || "").trim());
     if (row.length === 0) {
       await this.writeHeaders(title, headers);
       await this.freezeHeader(title);
+      return;
+    }
+    // Extend when current headers are a strict prefix of required headers (new columns only).
+    // Never insert/reorder mid-row — that would misalign existing data cells.
+    if (
+      row.length < headers.length &&
+      row.every((header, index) => header === headers[index])
+    ) {
+      await this.writeHeaders(title, headers);
+      await this.freezeHeader(title);
+      this.cache.invalidate(`rows:${title}`);
+      logProvider("Write", `extended headers ${title} (${row.length}→${headers.length})`);
     }
   }
 

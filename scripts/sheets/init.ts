@@ -1,5 +1,4 @@
 import { randomUUID } from "crypto";
-import bcrypt from "bcryptjs";
 import { loadEnvFiles } from "./load-env";
 import { resetDataProvider, getDataProvider } from "../../src/data";
 import {
@@ -7,6 +6,141 @@ import {
   ensureGoogleSheetsStructure,
   resetGoogleSheetsClient
 } from "../../src/data/providers/google-sheets/google-sheets.provider";
+import { hashPassword } from "../../src/lib/password";
+
+const PERMISSIONS = [
+  // Foundation
+  ["dashboard.view", "dashboard", "View dashboard"],
+  ["admin.system.view", "administration", "View system information"],
+  ["admin.data-provider.view", "administration", "View data provider diagnostics"],
+  ["admin.data-provider.manage", "administration", "Manage data provider diagnostics"],
+  ["admin.users.manage", "administration", "Manage users"],
+  ["admin.roles.manage", "administration", "Manage roles"],
+  ["admin.permissions.manage", "administration", "Manage permissions"],
+  ["audit.view", "audit", "View audit logs"],
+  // Module 01 — auth/security
+  ["security.overview.view", "security", "View security overview"],
+  ["security.login_history.view", "security", "View login history"],
+  ["security.sessions.view", "security", "View sessions"],
+  ["security.password.reset", "security", "Reset user passwords"],
+  ["admin.users.view", "administration", "View users"],
+  ["admin.users.create", "administration", "Create users"],
+  ["admin.users.update", "administration", "Update users"],
+  ["admin.users.activate", "administration", "Activate or deactivate users"],
+  ["admin.roles.view", "administration", "View roles"],
+  ["admin.roles.create", "administration", "Create roles"],
+  ["admin.roles.update", "administration", "Update roles"],
+  ["admin.permissions.assign", "administration", "Assign permissions"],
+  ["profile.view", "profile", "View own profile"],
+  ["profile.password.change", "profile", "Change own password"],
+  // Module 02 — organisation
+  ["organisation.overview.view", "organisation", "View organisation overview"],
+  ["organisation.company.view", "organisation", "View company profile"],
+  ["organisation.company.update", "organisation", "Update company profile"],
+  ["organisation.branches.view", "organisation", "View branches"],
+  ["organisation.branches.create", "organisation", "Create branches"],
+  ["organisation.branches.update", "organisation", "Update branches"],
+  ["organisation.warehouses.view", "organisation", "View warehouses"],
+  ["organisation.warehouses.create", "organisation", "Create warehouses"],
+  ["organisation.warehouses.update", "organisation", "Update warehouses"],
+  // Module 03 — executive dashboard
+  ["dashboard.executive.view", "dashboard", "View executive dashboard"],
+  ["dashboard.security.view", "dashboard", "View dashboard security indicators"],
+  ["dashboard.financial.view", "dashboard", "View financial dashboard indicators"]
+] as const;
+
+const ROLE_GRANTS: Record<string, string[]> = {
+  MANAGING_DIRECTOR: [
+    "dashboard.view",
+    "dashboard.executive.view",
+    "dashboard.security.view",
+    "dashboard.financial.view",
+    "admin.users.view",
+    "admin.roles.view",
+    "security.overview.view",
+    "security.login_history.view",
+    "security.sessions.view",
+    "organisation.overview.view",
+    "organisation.company.view",
+    "organisation.company.update",
+    "organisation.branches.view",
+    "organisation.branches.create",
+    "organisation.branches.update",
+    "organisation.warehouses.view",
+    "organisation.warehouses.create",
+    "organisation.warehouses.update",
+    "profile.view",
+    "profile.password.change"
+  ],
+  OPERATIONS_MANAGER: [
+    "dashboard.view",
+    "dashboard.executive.view",
+    "dashboard.security.view",
+    "organisation.overview.view",
+    "organisation.company.view",
+    "organisation.company.update",
+    "organisation.branches.view",
+    "organisation.branches.create",
+    "organisation.branches.update",
+    "organisation.warehouses.view",
+    "organisation.warehouses.create",
+    "organisation.warehouses.update",
+    "profile.view",
+    "profile.password.change"
+  ],
+  STORE_MANAGER: [
+    "dashboard.view",
+    "dashboard.executive.view",
+    "dashboard.security.view",
+    "organisation.overview.view",
+    "organisation.company.view",
+    "organisation.branches.view",
+    "organisation.warehouses.view",
+    "organisation.warehouses.create",
+    "organisation.warehouses.update",
+    "profile.view",
+    "profile.password.change"
+  ],
+  ACCOUNTANT: [
+    "dashboard.view",
+    "dashboard.financial.view",
+    "organisation.overview.view",
+    "organisation.company.view",
+    "organisation.branches.view",
+    "organisation.warehouses.view",
+    "profile.view",
+    "profile.password.change"
+  ],
+  AUDITOR: [
+    "dashboard.view",
+    "audit.view",
+    "security.login_history.view",
+    "organisation.overview.view",
+    "organisation.company.view",
+    "organisation.branches.view",
+    "organisation.warehouses.view",
+    "profile.view",
+    "profile.password.change"
+  ],
+  INVENTORY_OFFICER: [
+    "dashboard.view",
+    "organisation.overview.view",
+    "organisation.company.view",
+    "organisation.branches.view",
+    "organisation.warehouses.view",
+    "profile.view",
+    "profile.password.change"
+  ],
+  PROCUREMENT_OFFICER: [
+    "dashboard.view",
+    "organisation.overview.view",
+    "organisation.company.view",
+    "organisation.branches.view",
+    "organisation.warehouses.view",
+    "profile.view",
+    "profile.password.change"
+  ]
+};
 
 async function seedFoundation() {
   const db = getDataProvider();
@@ -76,27 +210,34 @@ async function seedFoundation() {
     }
   }
 
-  const permissions = [
-    ["dashboard.view", "dashboard", "View dashboard"],
-    ["admin.system.view", "administration", "View system information"],
-    ["admin.data-provider.view", "administration", "View data provider diagnostics"],
-    ["admin.data-provider.manage", "administration", "Manage data provider diagnostics"],
-    ["admin.users.manage", "administration", "Manage users"],
-    ["admin.roles.manage", "administration", "Manage roles"],
-    ["admin.permissions.manage", "administration", "Manage permissions"],
-    ["audit.view", "audit", "View audit logs"]
-  ] as const;
-
-  for (const [permissionKey, module, name] of permissions) {
+  for (const [permissionKey, module, name] of PERMISSIONS) {
     if (!(await db.permissions.findByKey(permissionKey))) {
       await db.permissions.create({ permissionKey, module, name });
       console.log(`Seeded permission ${permissionKey}`);
     }
   }
 
+  // Baseline grants for all non-super roles
+  const allRoles = await db.roles.findMany({ pageSize: 50 });
+  const allPerms = await db.permissions.findMany({ pageSize: 200 });
+  const permByKey = new Map(allPerms.items.map((p) => [p.permissionKey, p.id]));
+
+  for (const role of allRoles.items) {
+    if (role.code === "SUPER_ADMIN") continue;
+    const keys = new Set([
+      "dashboard.view",
+      "profile.view",
+      "profile.password.change",
+      ...(ROLE_GRANTS[role.code] || [])
+    ]);
+    for (const key of keys) {
+      const permissionId = permByKey.get(key);
+      if (permissionId) await db.rolePermissions.grant(role.id, permissionId);
+    }
+  }
+
   const superRole = await db.roles.findByCode("SUPER_ADMIN");
   if (superRole) {
-    const allPerms = await db.permissions.findMany({ pageSize: 200 });
     for (const perm of allPerms.items) {
       await db.rolePermissions.grant(superRole.id, perm.id);
     }
@@ -127,7 +268,7 @@ async function seedFoundation() {
   const adminName = process.env.BOOTSTRAP_ADMIN_NAME || "System Administrator";
   let admin = await db.users.findByEmail(adminEmail);
   if (!admin) {
-    const passwordHash = await bcrypt.hash(adminPassword, 12);
+    const passwordHash = await hashPassword(adminPassword);
     admin = await db.users.create({
       email: adminEmail,
       displayName: adminName,
@@ -144,7 +285,6 @@ async function seedFoundation() {
 
   const metrics = await db.dashboard.listMetrics();
   if (metrics.length === 0) {
-    // No fabricated business KPIs — foundation status only.
     console.log("Dashboard metrics left empty (no fabricated KPIs).");
   }
 
@@ -175,6 +315,9 @@ async function main() {
   }
   if (!(await db.schemaMigrations.has("004"))) {
     await db.schemaMigrations.record("004", "dashboard");
+  }
+  if (!(await db.schemaMigrations.has("005"))) {
+    await db.schemaMigrations.record("005", "module03-schema-v2-columns");
   }
 
   console.log("Seeding foundation data (idempotent)…");

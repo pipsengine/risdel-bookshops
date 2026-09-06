@@ -1,5 +1,5 @@
 import { randomUUID } from "crypto";
-import { ConflictError, NotFoundError } from "@/lib/errors";
+import { NotFoundError } from "@/lib/errors";
 import type {
   AuditLog,
   AuditLogInput,
@@ -70,13 +70,17 @@ function companyFrom(r: Record<string, string>): Company | null {
     taxNumber: parseNullableString(r.TaxNumber),
     email: parseNullableString(r.Email),
     phone: parseNullableString(r.Phone),
+    website: parseNullableString(r.Website),
     addressLine1: parseNullableString(r.AddressLine1),
     addressLine2: parseNullableString(r.AddressLine2),
     city: parseNullableString(r.City),
     state: parseNullableString(r.State),
+    postalCode: parseNullableString(r.PostalCode),
     country: parseString(r.Country, "Nigeria"),
     currencyCode: parseString(r.CurrencyCode, "NGN"),
     timeZone: parseString(r.TimeZone, "Africa/Lagos"),
+    businessType: parseNullableString(r.BusinessType),
+    receiptFooter: parseNullableString(r.ReceiptFooter),
     logoPath: parseNullableString(r.LogoPath),
     isActive: isActiveFlag(r),
     createdAt: parseString(r.CreatedAt, nowIso()),
@@ -122,7 +126,11 @@ export class SheetsCompanyRepository
       UpdatedAt: entity.updatedAt ?? "",
       UpdatedBy: entity.updatedBy ?? "",
       DeletedAt: entity.deletedAt ?? "",
-      DeletedBy: entity.deletedBy ?? ""
+      DeletedBy: entity.deletedBy ?? "",
+      Website: entity.website ?? "",
+      PostalCode: entity.postalCode ?? "",
+      BusinessType: entity.businessType ?? "",
+      ReceiptFooter: entity.receiptFooter ?? ""
     };
   }
   async findByCode(code: string) {
@@ -182,6 +190,10 @@ function branchFrom(r: Record<string, string>): Branch | null {
     address: parseNullableString(r.Address),
     city: parseNullableString(r.City),
     state: parseNullableString(r.State),
+    postalCode: parseNullableString(r.PostalCode),
+    managerId: parseNullableString(r.ManagerId),
+    openingDate: parseNullableString(r.OpeningDate),
+    notes: parseNullableString(r.Notes),
     isHeadOffice: parseBoolean(r.IsHeadOffice),
     isActive: isActiveFlag(r),
     createdAt: parseString(r.CreatedAt, nowIso()),
@@ -222,7 +234,11 @@ export class SheetsBranchRepository
       UpdatedAt: e.updatedAt ?? "",
       UpdatedBy: e.updatedBy ?? "",
       DeletedAt: e.deletedAt ?? "",
-      DeletedBy: e.deletedBy ?? ""
+      DeletedBy: e.deletedBy ?? "",
+      PostalCode: e.postalCode ?? "",
+      ManagerId: e.managerId ?? "",
+      OpeningDate: e.openingDate ?? "",
+      Notes: e.notes ?? ""
     };
   }
   async findByCode(companyId: string, code: string) {
@@ -253,8 +269,9 @@ export class SheetsBranchRepository
       "Branch code already exists for this company."
     );
     if (data.isHeadOffice) {
-      const existingHO = all.find((b) => b.companyId === data.companyId && b.isHeadOffice && b.isActive);
-      if (existingHO) throw new ConflictError("Only one head office is allowed per company.");
+      for (const other of all.filter((b) => b.companyId === data.companyId && b.isHeadOffice)) {
+        await this.updateEntity(other.id, { isHeadOffice: false, updatedBy: data.createdBy ?? null });
+      }
     }
     return this.appendEntity({
       ...data,
@@ -278,6 +295,14 @@ export class SheetsBranchRepository
         "Branch code already exists for this company."
       );
     }
+    if (data.isHeadOffice === true) {
+      const all = await this.findAll();
+      for (const other of all.filter(
+        (b) => b.id !== id && b.companyId === current.companyId && b.isHeadOffice
+      )) {
+        await this.updateEntity(other.id, { isHeadOffice: false, updatedBy: data.updatedBy ?? null });
+      }
+    }
     return this.updateEntity(id, data, data.updatedAt);
   }
   async deactivate(id: string, deletedBy?: string | null) {
@@ -298,8 +323,11 @@ function warehouseFrom(r: Record<string, string>): Warehouse | null {
     name: parseString(r.Name),
     warehouseType: parseNullableString(r.WarehouseType),
     address: parseNullableString(r.Address),
+    managerId: parseNullableString(r.ManagerId),
     allowSales: parseBoolean(r.AllowSales, true),
+    allowNegativeStock: parseBoolean(r.AllowNegativeStock),
     isDefault: parseBoolean(r.IsDefault),
+    notes: parseNullableString(r.Notes),
     isActive: isActiveFlag(r),
     createdAt: parseString(r.CreatedAt, nowIso()),
     createdBy: parseNullableString(r.CreatedBy),
@@ -336,7 +364,10 @@ export class SheetsWarehouseRepository
       UpdatedAt: e.updatedAt ?? "",
       UpdatedBy: e.updatedBy ?? "",
       DeletedAt: e.deletedAt ?? "",
-      DeletedBy: e.deletedBy ?? ""
+      DeletedBy: e.deletedBy ?? "",
+      ManagerId: e.managerId ?? "",
+      AllowNegativeStock: e.allowNegativeStock ?? false,
+      Notes: e.notes ?? ""
     };
   }
   async findByCode(branchId: string, code: string) {
@@ -367,8 +398,9 @@ export class SheetsWarehouseRepository
       "Warehouse code already exists for this branch."
     );
     if (data.isDefault) {
-      const existing = all.find((w) => w.branchId === data.branchId && w.isDefault && w.isActive);
-      if (existing) throw new ConflictError("Only one default warehouse is allowed per branch.");
+      for (const other of all.filter((w) => w.branchId === data.branchId && w.isDefault)) {
+        await this.updateEntity(other.id, { isDefault: false, updatedBy: data.createdBy ?? null });
+      }
     }
     return this.appendEntity({
       ...data,
@@ -376,6 +408,7 @@ export class SheetsWarehouseRepository
       createdAt: nowIso(),
       isActive: data.isActive ?? true,
       allowSales: data.allowSales ?? true,
+      allowNegativeStock: data.allowNegativeStock ?? false,
       isDefault: data.isDefault ?? false
     });
   }
@@ -392,6 +425,14 @@ export class SheetsWarehouseRepository
           w.code.toLowerCase() === data.code!.toLowerCase(),
         "Warehouse code already exists for this branch."
       );
+    }
+    if (data.isDefault === true) {
+      const all = await this.findAll();
+      for (const other of all.filter(
+        (w) => w.id !== id && w.branchId === current.branchId && w.isDefault
+      )) {
+        await this.updateEntity(other.id, { isDefault: false, updatedBy: data.updatedBy ?? null });
+      }
     }
     return this.updateEntity(id, data, data.updatedAt);
   }
@@ -410,6 +451,8 @@ function userFrom(r: Record<string, string>): User | null {
     id: r.Id,
     email: normalizeEmail(parseString(r.Email)),
     displayName: parseString(r.DisplayName),
+    phone: parseNullableString(r.Phone),
+    jobTitle: parseNullableString(r.JobTitle),
     passwordHash: parseNullableString(r.PasswordHash),
     mustChangePassword: parseBoolean(r.MustChangePassword, true),
     failedLoginCount: parseInteger(r.FailedLoginCount),
@@ -451,7 +494,9 @@ export class SheetsUserRepository
       UpdatedAt: e.updatedAt ?? "",
       UpdatedBy: e.updatedBy ?? "",
       DeletedAt: e.deletedAt ?? "",
-      DeletedBy: e.deletedBy ?? ""
+      DeletedBy: e.deletedBy ?? "",
+      Phone: e.phone ?? "",
+      JobTitle: e.jobTitle ?? ""
     };
   }
   async findByEmail(email: string) {
@@ -767,6 +812,9 @@ export class SheetsUserSessionRepository
   }
   async findByTokenHash(hash: string) {
     return (await this.findAll()).find((s) => s.sessionTokenHash === hash && !s.revokedAt) ?? null;
+  }
+  async listAll() {
+    return this.findAll();
   }
   async create(data: Omit<UserSession, "id" | "createdAt"> & { id?: string }) {
     return this.appendEntity({

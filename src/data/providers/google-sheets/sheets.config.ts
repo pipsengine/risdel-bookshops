@@ -27,22 +27,26 @@ export type SheetName = (typeof SHEETS)[SheetKey];
 
 export const REQUIRED_SHEETS: SheetName[] = Object.values(SHEETS);
 
-export const DATA_SCHEMA_VERSION = "1";
+export const DATA_SCHEMA_VERSION = "2";
 
 export const SHEET_HEADERS: Record<SheetName, string[]> = {
   [SHEETS.schemaMigrations]: ["Id", "Version", "Name", "AppliedAt", "Checksum"],
   [SHEETS.companies]: [
     "Id", "Code", "Name", "TradingName", "RegistrationNumber", "TaxNumber", "Email", "Phone",
     "AddressLine1", "AddressLine2", "City", "State", "Country", "CurrencyCode", "TimeZone",
-    "LogoPath", "IsActive", "CreatedAt", "CreatedBy", "UpdatedAt", "UpdatedBy", "DeletedAt", "DeletedBy"
+    "LogoPath", "IsActive", "CreatedAt", "CreatedBy", "UpdatedAt", "UpdatedBy", "DeletedAt", "DeletedBy",
+    // Schema v2 — appended so existing sheets remain a header prefix
+    "Website", "PostalCode", "BusinessType", "ReceiptFooter"
   ],
   [SHEETS.branches]: [
     "Id", "CompanyId", "Code", "Name", "BranchType", "Email", "Phone", "Address", "City", "State",
-    "IsHeadOffice", "IsActive", "CreatedAt", "CreatedBy", "UpdatedAt", "UpdatedBy", "DeletedAt", "DeletedBy"
+    "IsHeadOffice", "IsActive", "CreatedAt", "CreatedBy", "UpdatedAt", "UpdatedBy", "DeletedAt", "DeletedBy",
+    "PostalCode", "ManagerId", "OpeningDate", "Notes"
   ],
   [SHEETS.warehouses]: [
     "Id", "BranchId", "Code", "Name", "WarehouseType", "Address", "AllowSales", "IsDefault",
-    "IsActive", "CreatedAt", "CreatedBy", "UpdatedAt", "UpdatedBy", "DeletedAt", "DeletedBy"
+    "IsActive", "CreatedAt", "CreatedBy", "UpdatedAt", "UpdatedBy", "DeletedAt", "DeletedBy",
+    "ManagerId", "AllowNegativeStock", "Notes"
   ],
   [SHEETS.settings]: [
     "Id", "Category", "SettingKey", "SettingValue", "DataType", "Description", "IsEncrypted", "UpdatedAt"
@@ -60,7 +64,8 @@ export const SHEET_HEADERS: Record<SheetName, string[]> = {
   [SHEETS.users]: [
     "Id", "Email", "DisplayName", "PasswordHash", "MustChangePassword", "FailedLoginCount",
     "LockedUntil", "LastLoginAt", "IsActive", "CreatedAt", "CreatedBy", "UpdatedAt", "UpdatedBy",
-    "DeletedAt", "DeletedBy"
+    "DeletedAt", "DeletedBy",
+    "Phone", "JobTitle"
   ],
   [SHEETS.roles]: [
     "Id", "Code", "Name", "Description", "IsSystem", "IsActive", "CreatedAt", "UpdatedAt"

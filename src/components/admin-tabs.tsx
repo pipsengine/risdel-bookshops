@@ -1,0 +1,3 @@
+import Link from "next/link";
+const tabs=[['Overview','/administration/security'],['Users','/administration/users'],['Roles','/administration/roles'],['Login History','/administration/login-history'],['Sessions','/administration/sessions'],['System','/administration/system']] as const;
+export function AdminTabs({active}:{active:string}){return <div className="tabs">{tabs.map(([name,href])=><Link key={name} href={href} className={`tab ${active===name?'active':''}`}>{name}</Link>)}</div>}

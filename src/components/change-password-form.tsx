@@ -1,0 +1,5 @@
+"use client";
+import { useActionState } from "react";
+import { changePassword,type PasswordState } from "@/app/actions/auth";
+const initial:PasswordState={};
+export function ChangePasswordForm(){const [state,action,pending]=useActionState(changePassword,initial);return <form action={action} className="form-stack"><div className="field"><label>Current password</label><input className="input" type="password" name="currentPassword" required autoComplete="current-password"/></div><div className="field"><label>New password</label><input className="input" type="password" name="newPassword" required autoComplete="new-password"/><small>Minimum 8 characters with uppercase, lowercase, number and special character.</small></div><div className="field"><label>Confirm new password</label><input className="input" type="password" name="confirmPassword" required autoComplete="new-password"/></div>{state.error&&<div className="alert alert-danger">{state.error}</div>}<button className="btn btn-primary" disabled={pending}>{pending?'Updating…':'Change password'}</button></form>}

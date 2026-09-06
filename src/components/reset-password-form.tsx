@@ -1,0 +1,5 @@
+"use client";
+import { useActionState } from "react";
+import { resetUserPassword,type ActionState } from "@/app/actions/users";
+const initial:ActionState={};
+export function ResetPasswordForm({userId}:{userId:string}){const [state,action,pending]=useActionState(resetUserPassword,initial);return <form action={action} className="form-stack"><input type="hidden" name="userId" value={userId}/><div className="field"><label>Temporary password</label><input className="input" name="temporaryPassword" placeholder="Leave blank to generate securely"/><small>The user will be required to replace it at their next sign in.</small></div>{state.error&&<div className="alert alert-danger">{state.error}</div>}{state.success&&<div className="alert alert-success"><strong>{state.success}</strong>{state.temporaryPassword&&<div className="temp-password">Temporary password: <code>{state.temporaryPassword}</code></div>}</div>}<button className="btn btn-secondary" disabled={pending}>{pending?'Resetting…':'Reset password'}</button></form>}

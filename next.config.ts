@@ -4,6 +4,7 @@ const nextConfig: NextConfig = {
   output: "standalone",
   poweredByHeader: false,
   reactStrictMode: true,
+  serverExternalPackages: ["googleapis", "mssql"],
   experimental: { serverActions: { bodySizeLimit: "2mb" } },
   async headers() {
     return [{

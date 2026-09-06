@@ -1,26 +1,37 @@
 {
   "name": "risdel-books",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "private": true,
   "scripts": {
     "dev": "next dev",
     "build": "next build",
     "start": "next start -p 3000",
+    "start:prod": "powershell -ExecutionPolicy Bypass -File ./scripts/start-prod.ps1",
     "lint": "next lint",
     "typecheck": "tsc --noEmit",
-    "check": "npm run typecheck && npm run build"
+    "check": "npm run typecheck && npm run build",
+    "sheets:init": "tsx scripts/sheets/init.ts",
+    "sheets:migrate": "tsx scripts/sheets/migrate.ts",
+    "sheets:export": "tsx scripts/sheets/export.ts"
   },
   "dependencies": {
+    "bcryptjs": "^3.0.3",
+    "googleapis": "^178.0.0",
     "mssql": "^11.0.1",
     "next": "^15.5.2",
     "react": "^19.1.1",
-    "react-dom": "^19.1.1"
+    "react-dom": "^19.1.1",
+    "uuid": "^14.0.2",
+    "zod": "^4.5.4"
   },
   "devDependencies": {
+    "@types/bcryptjs": "^2.4.6",
+    "@types/mssql": "^9.1.8",
     "@types/node": "^22.15.0",
     "@types/react": "^19.1.0",
     "@types/react-dom": "^19.1.0",
-    "@types/mssql": "^9.1.8",
+    "@types/uuid": "^10.0.0",
+    "tsx": "^4.23.13",
     "typescript": "^5.8.3"
   }
 }

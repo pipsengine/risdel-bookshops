@@ -1,0 +1,1 @@
+import Link from "next/link";export default function NotFound(){return <main className="unauth"><section className="card unauth-box"><div className="unauth-code">404</div><h1>Page not found</h1><p className="muted">The page may have moved or is not available in this module yet.</p><Link href="/dashboard" className="btn btn-primary">Return to dashboard</Link></section></main>}

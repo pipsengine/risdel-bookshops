@@ -1,0 +1,2 @@
+import { NextResponse } from "next/server";import { databaseHealth } from "@/lib/db";import { appConfig } from "@/config/app";
+export async function GET(){const database=await databaseHealth();const status=database.status==="Unavailable"?503:200;return NextResponse.json({status:status===200?"healthy":"degraded",application:appConfig.name,version:appConfig.version,database:database.status,timestamp:new Date().toISOString()},{status})}

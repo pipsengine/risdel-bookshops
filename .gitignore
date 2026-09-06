@@ -22,3 +22,9 @@ credentials*.json
 .env.production.local
 .vercel-sheets-key.b64.txt
 scripts/*.json
+
+.vercel
+.env*
+
+.vercel/
+

@@ -1,6 +1,6 @@
-# Google Sheets schema
+﻿# Google Sheets schema
 
-Primary workbook: **one spreadsheet** for the whole Risdel Books application.
+Primary workbook: **one spreadsheet** for the whole Risdel Bookshops application.
 
 ## Tabs (Module 00 foundation + identity/org/dashboard readiness)
 
@@ -17,8 +17,8 @@ Primary workbook: **one spreadsheet** for the whole Risdel Books application.
 | `Auth_Users` | Users (password **hashes** only) |
 | `Auth_Roles` | Roles |
 | `Auth_Permissions` | Permissions |
-| `Auth_UserRoles` | User ↔ Role |
-| `Auth_RolePermissions` | Role ↔ Permission |
+| `Auth_UserRoles` | User â†” Role |
+| `Auth_RolePermissions` | Role â†” Permission |
 | `Auth_UserSessions` | Optional session metadata |
 | `Auth_PasswordHistory` | Password history hashes |
 | `Audit_Logs` | Append-only audit |
@@ -31,7 +31,7 @@ Primary workbook: **one spreadsheet** for the whole Risdel Books application.
 
 - Header row is frozen and authoritative (map by **header name**, not column index).
 - Every record has an immutable UUID `Id`.
-- Relationships use UUID foreign keys (`CompanyId`, `BranchId`, …), never names.
+- Relationships use UUID foreign keys (`CompanyId`, `BranchId`, â€¦), never names.
 - Timestamps are ISO 8601 UTC (`2026-09-06T10:30:45.123Z`).
 - Soft delete via `IsActive` / `DeletedAt` / `DeletedBy` where applicable.
 - Currency amounts are application-level decimals; sheet display formatting is not authoritative.

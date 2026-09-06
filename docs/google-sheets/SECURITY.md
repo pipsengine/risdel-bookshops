@@ -1,4 +1,4 @@
-# Google Sheets security
+﻿# Google Sheets security
 
 ## Credentials
 
@@ -10,7 +10,7 @@
 ## Spreadsheet access
 
 - Keep the workbook **private**.
-- Do **not** use “Anyone with the link”.
+- Do **not** use â€œAnyone with the linkâ€.
 - Share only with the application service account (Editor) and required human administrators.
 - Review Google Cloud IAM and keys periodically; rotate compromised keys immediately.
 
@@ -19,7 +19,7 @@
 - Passwords are stored as **bcrypt hashes** only.
 - Do not log password hashes, private keys, or access tokens.
 - Audit and login history must avoid unnecessary sensitive payloads.
-- Document binaries are **not** stored in cells — only metadata + storage references.
+- Document binaries are **not** stored in cells â€” only metadata + storage references.
 
 ## Environment files
 
@@ -28,6 +28,6 @@
 
 ## Least privilege
 
-- Use a dedicated service account for Risdel Books only.
+- Use a dedicated service account for Risdel Bookshops only.
 - Scope API access to Google Sheets (spreadsheets scope).
 - Prefer a dedicated spreadsheet, not a shared personal workbook with unrelated data.

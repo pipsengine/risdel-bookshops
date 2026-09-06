@@ -1,4 +1,4 @@
-# Risdel Books
+﻿# Risdel Bookshops
 Business management platform for **Risdel Enterprise**.
 
 This repository follows an incremental-module model: every new module updates this same codebase and persistence architecture. Module 00 is the production foundation; future ZIP releases contain the complete application state, not isolated modules.
@@ -33,8 +33,8 @@ npm run dev
 Open `http://localhost:3000`.
 
 ### Terminal shortcuts
-- Development: `.\start-dev.cmd` → `http://localhost:3000`
-- Production (IIS backend): `.\start-prod.cmd` → `http://127.0.0.1:3000`
+- Development: `.\start-dev.cmd` â†’ `http://localhost:3000`
+- Production (IIS backend): `.\start-prod.cmd` â†’ `http://127.0.0.1:3000`
 
 ### IIS
 1. Keep production Node running (`.\start-prod.cmd` or Windows service).
@@ -62,24 +62,24 @@ Business modules must not inspect `DATA_PROVIDER`. Use `getDataProvider()` repos
 `scripts/database/` remains the relational schema reference. When `DATA_PROVIDER=sql-server`, SQL health is used; domain SQL repositories will be completed in later modules.
 
 ## Commands
-- `npm run dev` — local development
-- `npm run typecheck` — TypeScript checks
-- `npm run build` — production build
-- `npm start` — start production server after build
-- `npm run sheets:init` — create sheets, headers, seed (idempotent)
-- `npm run sheets:migrate` — apply sheet migration versions
-- `npm run sheets:export` — JSON/CSV backup under `exports/`
+- `npm run dev` â€” local development
+- `npm run typecheck` â€” TypeScript checks
+- `npm run build` â€” production build
+- `npm start` â€” start production server after build
+- `npm run sheets:init` â€” create sheets, headers, seed (idempotent)
+- `npm run sheets:migrate` â€” apply sheet migration versions
+- `npm run sheets:export` â€” JSON/CSV backup under `exports/`
 
 ## Repository map
-- `src/app` — routes and server actions
-- `src/components` — shared interface components
-- `src/config` — central application configuration
-- `src/data` — repository contracts + providers
-- `src/services` — business services
-- `src/lib` — infrastructure helpers
-- `scripts/database` — versioned SQL scripts (preserved)
-- `scripts/sheets` — Google Sheets init / migrate / export
-- `docs` — architecture, security, Google Sheets, deployment
-- `data/uploads` — local development attachment storage
+- `src/app` â€” routes and server actions
+- `src/components` â€” shared interface components
+- `src/config` â€” central application configuration
+- `src/data` â€” repository contracts + providers
+- `src/services` â€” business services
+- `src/lib` â€” infrastructure helpers
+- `scripts/database` â€” versioned SQL scripts (preserved)
+- `scripts/sheets` â€” Google Sheets init / migrate / export
+- `docs` â€” architecture, security, Google Sheets, deployment
+- `data/uploads` â€” local development attachment storage
 
 See `docs/modules/MODULE-00.md` and `docs/google-sheets/` for details.

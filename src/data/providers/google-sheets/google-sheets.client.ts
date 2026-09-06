@@ -87,13 +87,32 @@ export class GoogleSheetsClient {
       } catch (error) {
         attempt += 1;
         if (!isRetryable(error) || attempt >= max) {
-          logProvider("Failure", label, {
-            attempt,
-            message: error instanceof Error ? error.message : "unknown"
-          });
-          const anyErr = error as { code?: number; message?: string };
-          if (anyErr?.code === 403 || /auth|permission|credential/i.test(anyErr?.message || "")) {
-            throw new IntegrationError("Google authorization failure.");
+          const anyErr = error as {
+            code?: number | string;
+            message?: string;
+            errors?: Array<{ message?: string }>;
+            response?: { data?: { error?: { message?: string; status?: string } } };
+          };
+          const message =
+            anyErr?.response?.data?.error?.message ||
+            anyErr?.message ||
+            (error instanceof Error ? error.message : "unknown");
+          logProvider("Failure", label, { attempt, message });
+          const full = [message, ...(anyErr?.errors || []).map((e) => e.message)]
+            .filter(Boolean)
+            .join(" ");
+          if (/has not been used|is disabled|Enable it by visiting/i.test(full)) {
+            throw new IntegrationError(
+              "Google Sheets API is disabled for this Google Cloud project. Enable it at https://console.developers.google.com/apis/api/sheets.googleapis.com/overview?project=368034434543 then retry npm run sheets:init."
+            );
+          }
+          if (
+            Number(anyErr?.code) === 403 ||
+            /auth|permission|credential|forbidden/i.test(full)
+          ) {
+            throw new IntegrationError(
+              "Google Sheets authorization failed. Confirm the spreadsheet is shared with the service account email (Editor) and credentials are valid."
+            );
           }
           throw new IntegrationError(`Google Sheets operation failed: ${label}.`);
         }

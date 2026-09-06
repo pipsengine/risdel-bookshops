@@ -1,4 +1,4 @@
-# Google Sheets setup for Risdel Books
+﻿# Google Sheets setup for Risdel Bookshops
 
 Google Sheets is the **active interim data provider**. The application architecture stays provider-agnostic.
 
@@ -9,11 +9,11 @@ Google Sheets is the **active interim data provider**. The application architect
 3. **Create a service account** (IAM → Service Accounts → Create).
 4. **Create a JSON key** for the service account and download it.  
    Do **not** commit this file. Prefer copying values into `.env.local`.
-5. **Create a Google Spreadsheet** named e.g. `RISDEL BOOKS DATABASE`.
+5. **Create a Google Spreadsheet** named e.g. `RISDEL BOOKSHOPS DATABASE`.
 6. Copy the **spreadsheet ID** from the URL:  
    `https://docs.google.com/spreadsheets/d/<SPREADSHEET_ID>/edit`
 7. **Share the spreadsheet** with the service account email (`client_email` from the JSON).  
-   Grant **Editor** access. Keep the spreadsheet **private** (not “anyone with the link”).
+   Grant **Editor** access. Keep the spreadsheet **private** (not "anyone with the link").
 8. Configure `.env.local`:
 
 ```env

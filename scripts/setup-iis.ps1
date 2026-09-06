@@ -1,4 +1,4 @@
-# Configure IIS site + reverse proxy for Risdel Books.
+# Configure IIS site + reverse proxy for Risdel Bookshops.
 # Run elevated (Administrator):
 #   powershell -ExecutionPolicy Bypass -File .\scripts\setup-iis.ps1
 param(

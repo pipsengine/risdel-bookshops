@@ -1,4 +1,4 @@
-/* Risdel Books Module 00 - Foundation Schema | SQL Server */
+/* Risdel Bookshops Module 00 - Foundation Schema | SQL Server */
 SET XACT_ABORT ON;
 BEGIN TRANSACTION;
 IF NOT EXISTS (SELECT 1 FROM sys.schemas WHERE name='system') EXEC('CREATE SCHEMA system');

@@ -20,6 +20,8 @@ export function loadEnvFiles(cwd = process.cwd()) {
       ) {
         value = value.slice(1, -1);
       }
+      // Convert escaped newlines used in .env private keys
+      value = value.replace(/\\n/g, "\n");
       if (process.env[key] === undefined) process.env[key] = value;
     }
   }

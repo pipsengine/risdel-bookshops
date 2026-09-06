@@ -1,9 +1,9 @@
-# Module 00 — Foundation (+ data provider abstraction)
+﻿# Module 00 â€” Foundation (+ data provider abstraction)
 Version: 0.2.0
 
 Implemented:
 - Next.js/TypeScript application structure
-- Professional Risdel Books login and application shell
+- Professional Risdel Bookshops login and application shell
 - Signed bootstrap/session security (HttpOnly cookies)
 - Protected routes and security headers
 - **Pluggable data provider architecture** (`src/data`)
@@ -16,4 +16,4 @@ Implemented:
 - Data provider diagnostics page
 - IIS deployment blueprint
 
-Next update: Module 01 will extend this repository with full user/role/permission administration UI, lockout flows, password reset/change UI, and richer session management — still against repository contracts, not Google Sheets APIs directly.
+Next update: Module 01 will extend this repository with full user/role/permission administration UI, lockout flows, password reset/change UI, and richer session management â€” still against repository contracts, not Google Sheets APIs directly.

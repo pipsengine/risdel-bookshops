@@ -1,4 +1,4 @@
-# Start Risdel Books production Node server (used by IIS reverse proxy).
+# Start Risdel Bookshops production Node server (used by IIS reverse proxy).
 # Usage: .\scripts\start-prod.ps1
 $ErrorActionPreference = "Stop"
 $root = Split-Path $PSScriptRoot -Parent
@@ -37,6 +37,6 @@ $env:PORT = "3000"
 $env:HOSTNAME = "127.0.0.1"
 $env:NODE_PATH = Join-Path $root "node_modules"
 Set-Location $standalone
-Write-Host "Starting Risdel Books (production) at http://127.0.0.1:3000"
+Write-Host "Starting Risdel Bookshops (production) at http://127.0.0.1:3000"
 Write-Host "IIS should reverse-proxy to this process. Stop with Ctrl+C"
 node server.js

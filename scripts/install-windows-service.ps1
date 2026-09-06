@@ -1,4 +1,4 @@
-# Install Risdel Books Node process as a Windows service via NSSM (for IIS backend).
+# Install Risdel Bookshops Node process as a Windows service via NSSM (for IIS backend).
 # Prerequisites: download NSSM and place nssm.exe on PATH, or pass -NssmPath.
 # Run elevated:
 #   powershell -ExecutionPolicy Bypass -File .\scripts\install-windows-service.ps1
@@ -55,11 +55,11 @@ if ($existing) {
 & $nssm install $ServiceName $node $serverJs
 & $nssm set $ServiceName AppDirectory $standalone
 & $nssm set $ServiceName AppEnvironmentExtra "PORT=3000" "HOSTNAME=127.0.0.1" "NODE_ENV=production"
-& $nssm set $ServiceName DisplayName "Risdel Books"
-& $nssm set $ServiceName Description "Risdel Books Next.js standalone server (IIS reverse-proxy backend)"
+& $nssm set $ServiceName DisplayName "Risdel Bookshops"
+& $nssm set $ServiceName Description "Risdel Bookshops Next.js standalone server (IIS reverse-proxy backend)"
 & $nssm set $ServiceName Start SERVICE_AUTO_START
-& $nssm set $ServiceName AppStdout (Join-Path $root "backups\risdel-books-service.out.log")
-& $nssm set $ServiceName AppStderr (Join-Path $root "backups\risdel-books-service.err.log")
+& $nssm set $ServiceName AppStdout (Join-Path $root "backups\risdel-bookshops-service.out.log")
+& $nssm set $ServiceName AppStderr (Join-Path $root "backups\risdel-bookshops-service.err.log")
 & $nssm set $ServiceName AppRotateFiles 1
 & $nssm start $ServiceName
 

@@ -1,10 +1,10 @@
-# IIS deployment blueprint
-Risdel Books builds with Next.js `output: standalone` and runs as a managed Node.js process behind IIS.
+﻿# IIS deployment blueprint
+Risdel Bookshops builds with Next.js `output: standalone` and runs as a managed Node.js process behind IIS.
 
 ## Server prerequisites
 - Windows with IIS enabled
 - [URL Rewrite](https://www.iis.net/downloads/microsoft/url-rewrite)
-- [Application Request Routing (ARR)](https://www.iis.net/downloads/microsoft/application-request-routing) — enable **Proxy** in IIS Manager → server node → Application Request Routing Cache → Server Proxy Settings
+- [Application Request Routing (ARR)](https://www.iis.net/downloads/microsoft/application-request-routing) â€” enable **Proxy** in IIS Manager â†’ server node â†’ Application Request Routing Cache â†’ Server Proxy Settings
 - Node.js 22+ (this machine currently uses the installed Node runtime)
 - SQL Server connectivity
 - Valid TLS certificate (production)

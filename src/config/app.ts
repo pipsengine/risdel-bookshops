@@ -1,5 +1,5 @@
 export const appConfig = {
-  name: process.env.APP_NAME || "Risdel Books",
+  name: process.env.APP_NAME || "Risdel Bookshops",
   company: "Risdel Enterprise",
   version: process.env.APP_VERSION || "0.2.0",
   timezone: "Africa/Lagos",

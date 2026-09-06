@@ -17,7 +17,7 @@ async function seedFoundation() {
       id: randomUUID(),
       code: "RISDEL",
       name: "Risdel Enterprise",
-      tradingName: "Risdel Books",
+      tradingName: "Risdel Bookshops",
       country: "Nigeria",
       currencyCode: "NGN",
       timeZone: "Africa/Lagos",

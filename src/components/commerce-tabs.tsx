@@ -1,0 +1,1 @@
+import Link from "next/link";export function CommerceTabs({active}:{active:string}){return <div className="tabs">{[["Overview","/commerce"],["Online Orders","/commerce"],["Storefront","/shop"]].map(([n,h])=><Link className={`tab ${active===n?"active":""}`} href={h} key={n}>{n}</Link>)}</div>}

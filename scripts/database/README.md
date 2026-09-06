@@ -1,4 +1,4 @@
-# Risdel Books database bootstrap & upgrades
+# Risdel Bookshops database bootstrap & upgrades
 
 ## New installation through Module 01
 1. Create `RisdelBooks_Dev` (or your environment-specific database) in SQL Server.

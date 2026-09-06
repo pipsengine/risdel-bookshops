@@ -3,7 +3,7 @@ Version: 0.1.0
 
 Implemented:
 - Next.js/TypeScript application structure
-- Professional Risdel Books login and application shell
+- Professional Risdel Bookshops login and application shell
 - Signed bootstrap admin session
 - Protected routes and security headers
 - SQL Server connection helper + health endpoint

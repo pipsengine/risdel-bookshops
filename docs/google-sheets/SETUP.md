@@ -1,9 +1,9 @@
-# Risdel Books — Google Sheets Provider Setup
+# Risdel Bookshops — Google Sheets Provider Setup
 
-Risdel Books v0.4.1 uses Google Sheets as the default persistence provider while preserving the SQL Server provider for future migration.
+Risdel Bookshops v0.4.1 uses Google Sheets as the default persistence provider while preserving the SQL Server provider for future migration.
 
 ## 1. Private spreadsheet
-Use the existing **Risdel Books Database** spreadsheet. Keep General access set to **Restricted** and share it only with the Google Cloud service-account email as **Editor**.
+Use the existing **Risdel Bookshops Database** spreadsheet. Keep General access set to **Restricted** and share it only with the Google Cloud service-account email as **Editor**.
 
 Configured spreadsheet ID for this project:
 `1P1gFMGXcCWdxbPaNH24BHk9-NW_yqFqydj16QyGYIQw`

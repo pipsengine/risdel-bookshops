@@ -1,5 +1,5 @@
-# Risdel Books architecture
-Risdel Books is one evolving modular monolith: Next.js UI/server layer → application services → repositories → Microsoft SQL Server. Cross-cutting services (authentication, authorization, audit, notifications, documents, logging) are established once and reused by all modules. Business domains will be added under `src/features` without duplicating infrastructure.
+# Risdel Bookshops architecture
+Risdel Bookshops is one evolving modular monolith: Next.js UI/server layer → application services → repositories → Microsoft SQL Server. Cross-cutting services (authentication, authorization, audit, notifications, documents, logging) are established once and reused by all modules. Business domains will be added under `src/features` without duplicating infrastructure.
 
 ## Domain roadmap
 Foundation → Security → Organisation → Dashboard → Catalogue → Inventory → Sales/POS → CRM → Academic Sales → Suppliers → Procurement → Finance → Fulfilment → Reporting → Advanced Intelligence.

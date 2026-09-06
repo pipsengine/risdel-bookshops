@@ -1,5 +1,5 @@
 # IIS deployment blueprint
-Risdel Books builds with Next.js `output: standalone` and runs as a managed Node.js process behind IIS.
+Risdel Bookshops builds with Next.js `output: standalone` and runs as a managed Node.js process behind IIS.
 
 ## Server prerequisites
 - Windows Server with IIS

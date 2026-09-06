@@ -244,3 +244,9 @@ Risdel Bookshops v0.28.0 includes Module 27 — Advanced Catalogue & Inventory I
 ## Module 31 — Tax, Fiscal Controls & Nigeria Compliance
 
 Risdel Bookshops now includes a configurable Nigeria-focused tax workspace for VAT, educational zero-rating, WHT profiles/transactions, VAT working returns and fiscalization readiness. The Google Sheets schema version is **GS-029**. Run `npm run sheets:init` against the same existing workbook after upgrading.
+
+## Module 32 — Budgeting & Management Accounts (v0.33.0)
+Adds account/period budgets, budget-vs-actual, ledger-based management P&L and Statement of Financial Position, comparative reporting, and management-account pack snapshots. Google Sheets schema: GS-030.
+
+## Module 35 — Online Store
+After running the GS-033 initializer, the customer-facing storefront is available at `/shop`, the customer portal at `/portal`, and the staff online-order control centre at `/commerce`. Online card capture is intentionally disabled until a payment provider is configured.

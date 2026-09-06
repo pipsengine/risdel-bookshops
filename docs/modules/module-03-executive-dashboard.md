@@ -2,7 +2,7 @@
 
 Release: `v0.4.0`
 
-The executive dashboard is the management landing page for Risdel Books. It deliberately separates **verified live values** from future-module placeholders; production revenue, inventory and finance values are never generated from demonstration data.
+The executive dashboard is the management landing page for Risdel Bookshops. It deliberately separates **verified live values** from future-module placeholders; production revenue, inventory and finance values are never generated from demonstration data.
 
 ## Current live sources
 

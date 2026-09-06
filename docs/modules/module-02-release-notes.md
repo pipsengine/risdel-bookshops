@@ -1,4 +1,4 @@
-# Risdel Books v0.3.0 — Module 02 Release Notes
+# Risdel Bookshops v0.3.0 — Module 02 Release Notes
 
 Module 02 is an additive update to v0.2.0.
 

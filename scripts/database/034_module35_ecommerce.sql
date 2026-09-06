@@ -1,0 +1,8 @@
+/* Risdel Books Module 35 — E-Commerce, Online Orders & Customer Portal
+   Future relational migration reference. Google Sheets remains active provider. */
+IF NOT EXISTS (SELECT 1 FROM sys.schemas WHERE name='commerce') EXEC('CREATE SCHEMA commerce');
+GO
+IF OBJECT_ID('commerce.PortalAccounts') IS NULL CREATE TABLE commerce.PortalAccounts(Id uniqueidentifier NOT NULL PRIMARY KEY,CustomerId uniqueidentifier NOT NULL,Email nvarchar(320) NOT NULL,PasswordHash nvarchar(512) NOT NULL,Status nvarchar(30) NOT NULL,LastLoginAt datetime2 NULL,CreatedAt datetime2 NOT NULL,UpdatedAt datetime2 NOT NULL,IsActive bit NOT NULL DEFAULT 1);
+IF OBJECT_ID('commerce.Orders') IS NULL CREATE TABLE commerce.Orders(Id uniqueidentifier NOT NULL PRIMARY KEY,OrderNumber nvarchar(40) NOT NULL UNIQUE,SalesOrderId uniqueidentifier NULL,CustomerId uniqueidentifier NOT NULL,FulfilmentMode nvarchar(30) NOT NULL,PaymentMethod nvarchar(40) NOT NULL,PaymentStatus nvarchar(30) NOT NULL,Status nvarchar(30) NOT NULL,Subtotal decimal(18,2) NOT NULL,TaxTotal decimal(18,2) NOT NULL,DeliveryFee decimal(18,2) NOT NULL,DiscountTotal decimal(18,2) NOT NULL,Total decimal(18,2) NOT NULL,CurrencyCode char(3) NOT NULL DEFAULT 'NGN',CreatedAt datetime2 NOT NULL,UpdatedAt datetime2 NOT NULL,IsActive bit NOT NULL DEFAULT 1);
+IF OBJECT_ID('commerce.OrderLines') IS NULL CREATE TABLE commerce.OrderLines(Id uniqueidentifier NOT NULL PRIMARY KEY,OrderId uniqueidentifier NOT NULL,ProductId uniqueidentifier NOT NULL,Quantity decimal(18,3) NOT NULL,UnitPrice decimal(18,2) NOT NULL,TaxAmount decimal(18,2) NOT NULL,DiscountAmount decimal(18,2) NOT NULL,LineTotal decimal(18,2) NOT NULL,CreatedAt datetime2 NOT NULL,IsActive bit NOT NULL DEFAULT 1);
+GO

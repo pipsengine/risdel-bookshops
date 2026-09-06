@@ -1,0 +1,10 @@
+import {getRows,SHEETS} from "@/lib/sheets";
+const active=(r:any)=>String(r.IsActive??true).toLowerCase()!=="false",n=(v:any)=>Number(v||0);
+export async function assetWorkspace(){
+ const [classes,assets,runs,lines,transfers,disposals,impairments,events,coa,branches,warehouses,periods]=await Promise.all([
+  getRows(SHEETS.fixedAssetClasses),getRows(SHEETS.fixedAssets),getRows(SHEETS.fixedAssetDepRuns),getRows(SHEETS.fixedAssetDepLines),getRows(SHEETS.fixedAssetTransfers),getRows(SHEETS.fixedAssetDisposals),getRows(SHEETS.fixedAssetImpairments),getRows(SHEETS.fixedAssetEvents),getRows(SHEETS.financeChartOfAccounts),getRows(SHEETS.branches),getRows(SHEETS.warehouses),getRows(SHEETS.financePeriods)
+ ]);
+ const cs=classes.filter(active), ls=lines.filter(active), ims=impairments.filter(active);
+ const enriched=assets.filter(active).map((a:any)=>{const dep=ls.filter((l:any)=>l.AssetId===a.Id&&l.Status==="POSTED").reduce((s:number,l:any)=>s+n(l.DepreciationAmount),0),imp=ims.filter((i:any)=>i.AssetId===a.Id&&i.Status==="POSTED").reduce((s:number,i:any)=>s+n(i.Amount),0),cost=n(a.CapitalizedCost||a.AcquisitionCost);return {...a,Class:cs.find((c:any)=>c.Id===a.ClassId),AccumulatedDepreciation:dep,ImpairmentToDate:imp,CarryingAmount:Math.max(0,cost-dep-imp),Branch:branches.find((b:any)=>b.Id===a.BranchId),Warehouse:warehouses.find((w:any)=>w.Id===a.WarehouseId)}});
+ return {classes:cs,assets:enriched,runs:runs.filter(active).sort((a:any,b:any)=>String(b.RunDate).localeCompare(String(a.RunDate))),lines:ls,transfers:transfers.filter(active),disposals:disposals.filter(active),impairments:ims,events:events.filter(active),coa:coa.filter(active),branches:branches.filter(active),warehouses:warehouses.filter(active),periods:periods.filter(active),totalCost:enriched.filter((a:any)=>a.Status!=="DISPOSED").reduce((s:number,a:any)=>s+n(a.CapitalizedCost||a.AcquisitionCost),0),totalDep:enriched.reduce((s:number,a:any)=>s+n(a.AccumulatedDepreciation),0),totalCarrying:enriched.filter((a:any)=>a.Status!=="DISPOSED").reduce((s:number,a:any)=>s+n(a.CarryingAmount),0)};
+}

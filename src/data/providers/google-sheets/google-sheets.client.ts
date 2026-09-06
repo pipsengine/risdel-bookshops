@@ -69,13 +69,15 @@ export class GoogleSheetsClient {
         key: env.privateKey,
         scopes: ["https://www.googleapis.com/auth/spreadsheets"]
       });
+      // Force credential materialisation so bad keys fail here, not on first sheet call.
+      await auth.getAccessToken();
       this.sheets = google.sheets({ version: "v4", auth }) as unknown as SheetsApi;
       return this.sheets;
     } catch (error) {
       const reason = error instanceof Error ? error.message : "unknown";
       logProvider("Failure", "google-auth", { reason });
       throw new IntegrationError(
-        "Google authorization failure. On Vercel, fix GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY (quoted PEM with \\n newlines) or set GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY_BASE64, and confirm GOOGLE_SERVICE_ACCOUNT_EMAIL matches that key.",
+        "Google authorization failure. On Vercel set GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY_BASE64 from .vercel-sheets-key.b64.txt, delete the broken GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY if present, and confirm GOOGLE_SERVICE_ACCOUNT_EMAIL matches that key.",
         { reason }
       );
     }

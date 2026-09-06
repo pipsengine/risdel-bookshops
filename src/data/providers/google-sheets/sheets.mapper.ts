@@ -1,3 +1,4 @@
+import { createPrivateKey } from "crypto";
 import { ConfigurationError, ValidationError } from "@/lib/errors";
 
 export function parseString(value: unknown, fallback = ""): string {
@@ -87,9 +88,18 @@ export function maskSpreadsheetId(id: string | undefined): string | undefined {
   return `${id.slice(0, 4)}…${id.slice(-4)}`;
 }
 
-/** Normalise PEM from Vercel/dotenv (quotes, escaped newlines, base64). */
+/** Normalise PEM from Vercel/dotenv (quotes, escaped newlines, base64, JSON). */
 function normalizePrivateKeyPem(raw: string): string {
   let key = raw.trim();
+  // Full service-account JSON pasted into the key field
+  if (key.startsWith("{")) {
+    try {
+      const parsed = JSON.parse(key) as { private_key?: string };
+      if (parsed.private_key) key = parsed.private_key;
+    } catch {
+      /* treat as PEM below */
+    }
+  }
   if (
     (key.startsWith('"') && key.endsWith('"')) ||
     (key.startsWith("'") && key.endsWith("'"))
@@ -119,14 +129,43 @@ function normalizePrivateKeyPem(raw: string): string {
 
   if (!/BEGIN [A-Z0-9 ]*PRIVATE KEY/.test(key)) {
     throw new ConfigurationError(
-      "GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY is not a valid PEM key. On Vercel use quoted value with \\n newlines, or set GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY_BASE64."
+      "GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY is not a valid PEM key. On Vercel prefer GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY_BASE64 (see .env.example)."
+    );
+  }
+
+  try {
+    createPrivateKey(key);
+  } catch {
+    throw new ConfigurationError(
+      "Google service-account private key could not be parsed. Re-paste GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY_BASE64 from .vercel-sheets-key.b64.txt and remove any broken GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY value."
     );
   }
   return key;
 }
 
 export function getGooglePrivateKey(): string {
-  const b64 = process.env.GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY_BASE64?.trim();
+  const json = process.env.GOOGLE_SERVICE_ACCOUNT_JSON?.trim();
+  if (json) {
+    try {
+      const parsed = JSON.parse(json) as { private_key?: string; client_email?: string };
+      if (!parsed.private_key) {
+        throw new ConfigurationError(
+          "GOOGLE_SERVICE_ACCOUNT_JSON is missing private_key."
+        );
+      }
+      return normalizePrivateKeyPem(parsed.private_key);
+    } catch (error) {
+      if (error instanceof ConfigurationError) throw error;
+      throw new ConfigurationError(
+        "GOOGLE_SERVICE_ACCOUNT_JSON is not valid JSON."
+      );
+    }
+  }
+
+  const b64 = process.env.GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY_BASE64?.replace(
+    /\s+/g,
+    ""
+  );
   if (b64) {
     try {
       return normalizePrivateKeyPem(Buffer.from(b64, "base64").toString("utf8"));

@@ -201,10 +201,11 @@ export async function authenticate(email: string, password: string, remember = f
       );
       return { ok: true as const, mustChangePassword: false };
     }
-    return {
-      ok: false as const,
-      error: "Authentication service is temporarily unavailable. Check the data provider connection."
-    };
+    const detail =
+      error instanceof Error && error.message
+        ? error.message
+        : "Authentication service is temporarily unavailable. Check the data provider connection.";
+    return { ok: false as const, error: detail };
   }
 
   return { ok: false as const, error: "Invalid email or password." };

@@ -1,101 +1,145 @@
 import Link from "next/link";
+import type { ReactNode } from "react";
 import { AppShell } from "@/components/app-shell";
+import { Icon } from "@/lib/icons";
 import { appConfig } from "@/config/app";
 import { can, requirePermission } from "@/lib/authz";
-import { persistenceHealth } from "@/lib/persistence-health";
 import { listBranches } from "@/features/organisation/data";
 import { executiveDashboardData } from "@/features/dashboard/data";
 
 type Params={branch?:string};
 const money=new Intl.NumberFormat("en-NG",{style:"currency",currency:"NGN",maximumFractionDigits:0});
-const number=new Intl.NumberFormat("en-NG",{maximumFractionDigits:0});
+const count=new Intl.NumberFormat("en-NG",{maximumFractionDigits:0});
 
 export default async function Dashboard({searchParams}:{searchParams:Promise<Params>}){
-  const session=await requirePermission("dashboard.view");
-  const params=await searchParams;
-  const branches=await listBranches();
-  const validBranch=branches.find((b:any)=>String(b.Id)===params.branch);
-  const scope=validBranch?{branchId:String(validBranch.Id)}:{};
-  const [data,db]=await Promise.all([executiveDashboardData(scope),persistenceHealth()]);
-  const now=new Date();
-  const hour=Number(new Intl.DateTimeFormat("en-GB",{hour:"2-digit",hour12:false,timeZone:appConfig.timezone}).format(now));
-  const greeting=hour<12?"Good morning":hour<17?"Good afternoon":"Good evening";
-  const dateLabel=new Intl.DateTimeFormat("en-GB",{weekday:"long",day:"2-digit",month:"long",year:"numeric",timeZone:appConfig.timezone}).format(now);
-  const branchName=validBranch?.Name||"All branches";
-  const businessReady=data.domains.sales||data.domains.inventory||data.domains.procurement||data.domains.finance;
-  const executiveVisible=can(session,"dashboard.executive.view");
-  const financialVisible=executiveVisible&&can(session,"dashboard.financial.view");
-  const securityVisible=can(session,"dashboard.security.view");
+ const session=await requirePermission("dashboard.view");
+ const params=await searchParams;
+ const branches=await listBranches();
+ const validBranch=branches.find((b:any)=>String(b.Id)===params.branch);
+ const data:any=await executiveDashboardData(validBranch?{branchId:String(validBranch.Id)}:{});
+ const now=new Date();
+ const hour=Number(new Intl.DateTimeFormat("en-GB",{hour:"2-digit",hour12:false,timeZone:appConfig.timezone}).format(now));
+ const greeting=hour<12?"Good morning":hour<17?"Good afternoon":"Good evening";
+ const dateLabel=new Intl.DateTimeFormat("en-GB",{weekday:"long",day:"2-digit",month:"long",year:"numeric",timeZone:appConfig.timezone}).format(now);
+ const financial=can(session,"dashboard.financial.view")||session.roleCode==="SUPER_ADMIN";
+ const executive=can(session,"dashboard.executive.view")||session.roleCode==="SUPER_ADMIN";
+ const security=can(session,"dashboard.security.view")||session.roleCode==="SUPER_ADMIN";
+ const a=data.analytics||{trend:[],topProducts:[],inventory:{total:data.catalogue?.ActiveProducts||0,lowStock:data.business.lowStock||0,outOfStock:0,slowMoving:0},channels:[]};
+ const attention=[
+  ...(Number(data.business.lowStock||0)>0?[{tone:"danger",value:Number(data.business.lowStock),title:"Low stock items",detail:"Products below reorder level",href:"/inventory/reorder"}]:[]),
+  ...(Number(data.business.approvalsPending||0)>0?[{tone:"orange",value:Number(data.business.approvalsPending),title:"Approvals pending",detail:"Requests awaiting management approval",href:"/approvals"}]:[]),
+  ...(Number(data.business.overdueInvoices||0)>0?[{tone:"orange",value:Number(data.business.overdueInvoices),title:"Overdue invoices",detail:"Customer balances past due",href:"/finance/receivables"}]:[]),
+  ...(Number(data.business.supplierDelays||0)>0?[{tone:"info",value:Number(data.business.supplierDelays),title:"Supplier delays",detail:"Purchase orders past expected delivery",href:"/purchasing/orders"}]:[]),
+  ...data.alerts.slice(0,2).map((x:any)=>({tone:severity(x.Severity),value:"!",title:x.Title,detail:x.Message,href:"/notifications"})),
+  ...(security&&Number(data.security.PasswordChangesDue||0)>0?[{tone:"neutral",value:Number(data.security.PasswordChangesDue),title:"Password changes due",detail:"Users must update temporary passwords",href:"/administration/users"}]:[])
+ ];
 
-  return <AppShell active="Dashboard"><main className="page executive-page">
-    <div className="executive-head">
-      <div><div className="eyebrow">Executive workspace · {dateLabel}</div><h1 className="page-title">{greeting}, {session.name.split(" ")[0]}</h1><p className="page-desc">A controlled view of Risdel Enterprise operations, readiness, security and emerging business performance.</p></div>
-      <div className="dashboard-controls"><form method="get" className="branch-filter"><label htmlFor="branch">Operating scope</label><select id="branch" name="branch" defaultValue={validBranch?String(validBranch.Id):""}><option value="">All branches</option>{branches.filter((b:any)=>b.IsActive).map((b:any)=><option key={String(b.Id)} value={String(b.Id)}>{b.Name}</option>)}</select><button className="btn btn-secondary btn-xs" type="submit">Apply</button></form><span className="badge badge-info">v{appConfig.version}</span></div>
-    </div>
+ return <AppShell active="Dashboard"><main className="figma-dashboard figma-dashboard-v2">
+   <section className="figma-hero figma-hero-v2">
+     <div className="figma-hero-copy">
+       <small>{dateLabel}</small>
+       <h1>{greeting}, {session.name.split(" ")[0]}</h1>
+       <p>Here&apos;s what&apos;s happening across your bookshop today.</p>
+     </div>
+     <div className="figma-quote">
+       <span>“Books build people.<br/>People build a better tomorrow.”</span>
+       <div className="book-stack" aria-hidden="true"><b>Learn</b><b>Read</b><b>Grow</b><b>Succeed</b></div>
+     </div>
+   </section>
 
-    {!data.connected&&<div className="alert alert-warning dashboard-alert">The active data provider is unavailable or not fully configured. Live management metrics will resume when provider connectivity is restored.</div>}
+   <section className="figma-kpis">
+     <Kpi icon="cart" tone="blue" label="Sales Today" value={financial?fmtMoney(data.business.salesToday):"Restricted"} meta="Live today"/>
+     <Kpi icon="report" tone="green" label="Gross Profit" value={financial?fmtMoney(data.business.grossProfitMonth):"Restricted"} meta="Current month" detail={financial&&data.business.salesMonth?`${marginPct(data.business.grossProfitMonth,data.business.salesMonth)} margin`:undefined}/>
+     <Kpi icon="doc" tone="purple" label="Orders Today" value={executive?fmtNum(data.business.transactionsToday):"Restricted"} meta="Completed transactions"/>
+     <Kpi icon="wallet" tone="orange" label="Cash Position" value={financial?fmtMoney(data.business.cashPosition):"Restricted"} meta="Across active accounts"/>
+   </section>
 
-    <section className="exec-kpi-grid">
-      <Kpi label="Sales today" value={financialVisible?formatMoney(data.business.salesToday):"Restricted"} meta={financialVisible?(data.domains.sales?"Live sales metric":"Activates with Sales module"):"Financial dashboard permission required"} status={financialVisible&&data.domains.sales?"live":"planned"}/>
-      <Kpi label="Gross profit · month" value={financialVisible?formatMoney(data.business.grossProfitMonth):"Restricted"} meta={financialVisible?(data.domains.sales?"Current month":"Activates with Sales module"):"Financial dashboard permission required"} status={financialVisible&&data.domains.sales?"live":"planned"}/>
-      <Kpi label="Inventory value" value={executiveVisible?formatMoney(data.business.inventoryValue):"Restricted"} meta={executiveVisible?(data.domains.inventory?`${formatNumber(data.business.lowStock)} low-stock items`:"Activates with Inventory module"):"Executive dashboard permission required"} status={executiveVisible&&data.domains.inventory?"live":"planned"}/>
-      <Kpi label="Net exposure" value={financialVisible?netExposure(data.business.receivables,data.business.payables):"Restricted"} meta={financialVisible?(data.domains.finance?"Receivables less payables":"Activates with Finance module"):"Financial dashboard permission required"} status={financialVisible&&data.domains.finance?"live":"planned"}/>
-    </section>
+   <section className="figma-top-grid">
+     <div className="figma-card sales-chart-card">
+       <CardHead icon="report" title="Sales Performance" subtitle="Revenue trend across all sales channels" action={<span className="chart-pills"><b>Today</b><b>7D</b><b className="active">30D</b><b>12M</b></span>}/>
+       <TrendChart rows={a.trend}/>
+     </div>
 
-    <div className="executive-main-grid">
-      <div className="executive-stack">
-        <section className="card section performance-panel">
-          <div className="section-heading"><div><h2>Business performance</h2><p>{branchName} · live metrics only; unavailable domains are never fabricated.</p></div><span className={`badge ${businessReady?"badge-success":"badge-neutral"}`}>{businessReady?"Live domains connected":"Foundation stage"}</span></div>
-          <div className="performance-grid">
-            <Metric label="Revenue this month" value={financialVisible?formatMoney(data.business.salesMonth):"Restricted"} ready={financialVisible&&data.domains.sales} restricted={!financialVisible}/>
-            <Metric label="Transactions today" value={executiveVisible?formatNumber(data.business.transactionsToday):"Restricted"} ready={executiveVisible&&data.domains.sales} restricted={!executiveVisible}/>
-            <Metric label="Receivables" value={financialVisible?formatMoney(data.business.receivables):"Restricted"} ready={financialVisible&&data.domains.finance} restricted={!financialVisible}/>
-            <Metric label="Payables" value={financialVisible?formatMoney(data.business.payables):"Restricted"} ready={financialVisible&&data.domains.finance} restricted={!financialVisible}/>
-            <Metric label="Open purchase orders" value={executiveVisible?formatNumber(data.business.purchaseOrdersOpen):"Restricted"} ready={executiveVisible&&data.domains.procurement} restricted={!executiveVisible}/>
-            <Metric label="Low-stock items" value={executiveVisible?formatNumber(data.business.lowStock):"Restricted"} ready={executiveVisible&&data.domains.inventory} restricted={!executiveVisible}/>
-          </div>
-          <div className="domain-readiness"><Domain name="Catalogue" installed={data.domains.catalogue}/><Domain name="Inventory" installed={data.domains.inventory}/><Domain name="Sales" installed={data.domains.sales}/><Domain name="CRM" installed={Boolean((data.domains as any).crm)}/><Domain name="Procurement" installed={data.domains.procurement}/><Domain name="Finance" installed={data.domains.finance}/></div>
-        </section>
+     <div className="figma-card attention-panel">
+       <CardHead icon="bell" title="Management Attention" subtitle="Issues requiring your attention" action={<Link href="/notifications">View all</Link>}/>
+       <div className="attention-rows">
+        {attention.length?attention.slice(0,5).map((x:any,i:number)=><Link href={x.href} className="attention-row" key={`${x.title}-${i}`}><span className={`attention-number ${x.tone}`}>{x.value}</span><span><strong>{x.title}</strong><small>{x.detail}</small></span><b>›</b></Link>):<div className="clean-state"><span className="clean-check">✓</span><strong>No active management exceptions</strong><small>Your monitored business controls are currently clear.</small></div>}
+       </div>
+     </div>
 
-        <section className="card section">
-          <div className="section-heading"><div><h2>Operating footprint</h2><p>Current organisational capacity for {branchName}.</p></div>{can(session,"organisation.overview.view")&&<Link className="text-link" href="/organisation">Open organisation →</Link>}</div>
-          <div className="footprint-grid"><Footprint value={data.organisation.ActiveBranches} label="Active branches" note="Enabled operating locations"/><Footprint value={data.organisation.ActiveWarehouses} label="Warehouses" note="Active stock locations"/><Footprint value={data.organisation.SalesLocations} label="Sales locations" note="Warehouses permitted to sell"/><Footprint value={data.organisation.NegativeStockLocations} label="Negative-stock enabled" note={data.organisation.NegativeStockLocations?"Requires management review":"Control operating normally"} risk={Boolean(data.organisation.NegativeStockLocations)}/></div>
-        </section>
+     <div className="figma-card quick-panel">
+       <CardHead icon="plus" title="Quick Actions" subtitle="Manage key tasks quickly"/>
+       <div className="quick-tiles">
+        {can(session,"sales.pos.access")&&<Quick href="/sales/pos" icon="cart" label="New Sale" tone="blue"/>}
+        {can(session,"procurement.receipts.create")&&<Quick href="/purchasing/receipts" icon="package" label="Receive Stock" tone="green"/>}
+        {can(session,"procurement.orders.create")&&<Quick href="/purchasing/orders" icon="doc" label="Create PO" tone="purple"/>}
+        {can(session,"crm.customers.create")&&<Quick href="/customers" icon="users" label="Add Customer" tone="orange"/>}
+        {can(session,"finance.expenses.create")&&<Quick href="/finance/expenses" icon="wallet" label="Record Expense" tone="red"/>}
+        {can(session,"reports.view")&&<Quick href="/reports" icon="report" label="View Reports" tone="teal"/>}
+       </div>
+     </div>
+   </section>
 
-        <section className="card section">
-          <div className="section-heading"><div><h2>Recent controlled activity</h2><p>Latest auditable changes across the application.</p></div>{can(session,"security.overview.view")&&<Link className="text-link" href="/administration/security">Security centre →</Link>}</div>
-          {data.activity.length?<div className="activity-feed">{data.activity.map((a:any,i:number)=><div className="activity-item" key={`${a.OccurredAt}-${i}`}><span className="activity-symbol">{String(a.Action||"A").slice(0,1)}</span><div><strong>{a.Description||`${a.Action} · ${a.EntityType||a.Module}`}</strong><span>{a.DisplayName||"System"} · {a.Module}</span></div><time>{formatDateTime(a.OccurredAt)}</time></div>)}</div>:<div className="empty-state"><strong>No audit activity yet</strong><span>Controlled business and administration events will appear here as the team uses Risdel Bookshops.</span></div>}
-        </section>
-      </div>
+   <section className="figma-middle-grid">
+     <div className="figma-card"><CardHead icon="sales" title="Sales Channels" subtitle="Last 30 days" action={<Link href="/reports/sales">View details →</Link>}/><ChannelChart rows={a.channels}/></div>
+     <div className="figma-card"><CardHead icon="box" title="Inventory Health" subtitle="Current stock status" action={<Link href="/inventory">View inventory →</Link>}/><div className="inventory-health"><Health tone="teal" value={a.inventory.total} label="Total items" icon="box"/><Health tone="blue" value={a.inventory.lowStock} label="Low stock" icon="doc"/><Health tone="red" value={a.inventory.outOfStock} label="Out of stock" icon="plus"/><Health tone="orange" value={a.inventory.slowMoving} label="Slow moving" icon="approve"/></div></div>
+     <div className="figma-card"><CardHead icon="finance" title="Financial Position" subtitle="Key financials · this month" action={<Link href="/finance">View finance →</Link>}/><div className="finance-list"><FinanceRow icon="doc" label="Receivables" value={financial?fmtMoney(data.business.receivables):"Restricted"}/><FinanceRow icon="wallet" label="Payables" value={financial?fmtMoney(data.business.payables):"Restricted"}/><FinanceRow icon="report" label="Total Expenses" value={financial?fmtMoney(data.business.expensesMonth):"Restricted"}/><FinanceRow icon="wallet" label="Net Cash Position" value={financial?fmtMoney(data.business.cashPosition):"Restricted"} strong/></div></div>
+   </section>
 
-      <aside className="executive-stack">
-        <section className="card section attention-card"><div className="section-heading"><div><h2>Management attention</h2><p>Exceptions requiring visibility.</p></div><span className="attention-count">{data.alerts.length+(securityVisible?Number(data.security.LockedUsers||0)+Number(data.security.FailedLogins7d||0):0)}</span></div>
-          <div className="attention-list">
-            {securityVisible&&Number(data.security.LockedUsers)>0&&<Attention severity="critical" title={`${data.security.LockedUsers} locked account${data.security.LockedUsers===1?"":"s"}`} detail="Review account security before unlocking."/>}
-            {securityVisible&&Number(data.security.FailedLogins7d)>0&&<Attention severity="warning" title={`${data.security.FailedLogins7d} failed sign-in${data.security.FailedLogins7d===1?"":"s"} in 7 days`} detail="Review login history for unusual activity."/>}
-            {securityVisible&&Number(data.security.PasswordChangesDue)>0&&<Attention severity="info" title={`${data.security.PasswordChangesDue} password change${data.security.PasswordChangesDue===1?"":"s"} due`} detail="Users must change temporary passwords at sign-in."/>}
-            {data.alerts.map((a:any,i:number)=><Attention key={i} severity={String(a.Severity).toLowerCase()} title={a.Title} detail={a.Message}/>) }
-            {!data.alerts.length&&(!securityVisible||(!Number(data.security.LockedUsers)&&!Number(data.security.FailedLogins7d)&&!Number(data.security.PasswordChangesDue)))&&<div className="attention-clear"><span>✓</span><div><strong>No active exceptions</strong><small>Nothing requires immediate management attention.</small></div></div>}
-          </div>
-        </section>
-
-        {securityVisible&&<section className="card section"><h2>Access & security</h2><p>Company-wide identity controls.</p><div className="security-score-grid"><div><span>Active users</span><strong>{data.security.ActiveUsers}</strong></div><div><span>Active roles</span><strong>{data.security.ActiveRoles}</strong></div><div><span>Locked</span><strong className={data.security.LockedUsers?"danger-text":""}>{data.security.LockedUsers}</strong></div><div><span>Inactive</span><strong>{data.security.InactiveUsers}</strong></div></div>{can(session,"admin.users.view")&&<Link href="/administration/users" className="btn btn-secondary full-button">Manage users</Link>}</section>}
-
-        <section className="card section"><h2>Quick actions</h2><p>Common setup and management tasks.</p><div className="quick-action-list">{can(session,"crm.customers.view")&&<Quick href="/customers" title="Customers & CRM" detail="Accounts, relationships & statements"/>}{can(session,"organisation.company.view")&&<Quick href="/administration/company" title="Company profile" detail="Business identity & defaults"/>}{can(session,"organisation.branches.view")&&<Quick href="/administration/branches" title="Branches" detail="Operating locations"/>}{can(session,"organisation.warehouses.view")&&<Quick href="/administration/warehouses" title="Warehouses" detail="Stock locations & controls"/>}{can(session,"admin.roles.view")&&<Quick href="/administration/roles" title="Roles & permissions" detail="Access control matrix"/>}</div></section>
-
-        <section className="card section system-strip"><div><span>Data provider</span><strong className={db.status==="Healthy"?"success-text":"warning-text"}>{db.status}</strong></div><div><span>Environment</span><strong>{appConfig.environment}</strong></div><div><span>Release</span><strong>{appConfig.version}</strong></div></section>
-      </aside>
-    </div>
-  </main></AppShell>;
+   <section className="figma-bottom-grid">
+     <div className="figma-card table-card"><CardHead icon="report" title="Top Selling Products" subtitle="Best performing items this month" action={<Link href="/reports/sales">View all →</Link>}/><TopProducts rows={a.topProducts}/></div>
+     <div className="figma-card table-card"><CardHead icon="bell" title="Recent Business Activity" subtitle="Latest transactions and events" action={<Link href="/administration/audit">View all →</Link>}/><Activity rows={data.activity}/></div>
+   </section>
+ </main></AppShell>
 }
 
-function Kpi({label,value,meta,status}:{label:string;value:string;meta:string;status:"live"|"planned"}){return <div className="card executive-kpi"><div className="kpi-top"><span>{label}</span><i className={`metric-dot ${status}`}/></div><strong>{value}</strong><small>{meta}</small></div>}
-function Metric({label,value,ready,restricted=false}:{label:string;value:string;ready:boolean;restricted?:boolean}){return <div className={`performance-metric ${ready?"":"metric-muted"}`}><span>{label}</span><strong>{restricted?"Restricted":ready?value:"Not available"}</strong><small>{restricted?"Additional permission required":ready?"Current operational metric":"Module not installed"}</small></div>}
-function Domain({name,installed}:{name:string;installed:boolean}){return <div className={installed?"domain-chip installed":"domain-chip"}><i/>{name}<span>{installed?"Connected":"Pending"}</span></div>}
-function Footprint({value,label,note,risk=false}:{value:number;label:string;note:string;risk?:boolean}){return <div className={risk?"footprint-card risk":"footprint-card"}><strong>{value}</strong><span>{label}</span><small>{note}</small></div>}
-function Attention({severity,title,detail}:{severity:string;title:string;detail:string}){return <div className={`attention-item ${severity}`}><i/><div><strong>{title}</strong><span>{detail}</span></div></div>}
-function Quick({href,title,detail}:{href:string;title:string;detail:string}){return <Link href={href} className="quick-action"><span>→</span><div><strong>{title}</strong><small>{detail}</small></div></Link>}
-function formatMoney(v:number|null){return v==null?"—":money.format(v)}
-function formatNumber(v:number|null){return v==null?"—":number.format(v)}
-function netExposure(r:number|null,p:number|null){return r==null||p==null?"—":money.format(r-p)}
-function formatDateTime(v:any){if(!v)return "";return new Intl.DateTimeFormat("en-GB",{day:"2-digit",month:"short",hour:"2-digit",minute:"2-digit",timeZone:appConfig.timezone}).format(new Date(v))}
+function CardHead({icon,title,subtitle,action}:{icon:string;title:string;subtitle:string;action?:ReactNode}){return <div className="figma-card-head"><div><span className="head-icon"><Icon name={icon} size={17}/></span><span><strong>{title}</strong><small>{subtitle}</small></span></div>{action&&<div className="head-action">{action}</div>}</div>}
+function Kpi({icon,tone,label,value,meta,detail}:{icon:string;tone:string;label:string;value:string;meta:string;detail?:string}){return <div className={`figma-kpi ${tone}`}><span className="kpi-icon"><Icon name={icon} size={23}/></span><div className="kpi-copy"><small>{label}</small><strong>{value}</strong>{detail&&<em>{detail}</em>}</div><span className="kpi-trend"><i/> {meta}</span></div>}
+
+function TrendChart({rows}:{rows:any[]}){
+ const valid=rows?.filter((r:any)=>r?.date);
+ if(!valid?.length||valid.every((x:any)=>!Number(x.revenue)&&!Number(x.profit)))return <div className="trend-empty"><Icon name="report" size={31}/><strong>No completed sales trend yet</strong><span>The chart will populate automatically as transactions are completed.</span></div>;
+ const max=Math.max(1,...valid.flatMap((x:any)=>[Number(x.revenue||0),Number(x.profit||0)]));
+ const pts=(k:string)=>valid.map((r:any,i:number)=>`${i/(valid.length-1||1)*100},${90-(Number(r[k]||0)/max)*72}`).join(" ");
+ const last=valid[valid.length-1];
+ const labelIndexes=[0,Math.floor((valid.length-1)*.25),Math.floor((valid.length-1)*.5),Math.floor((valid.length-1)*.75),valid.length-1];
+ return <div className="trend-wrap">
+   <div className="chart-y"><span>{compact(max)}</span><span>{compact(max*.75)}</span><span>{compact(max*.5)}</span><span>{compact(max*.25)}</span><span>0</span></div>
+   <div className="trend-tooltip"><small>{formatShortDate(last.date)}</small><span><i className="blue"/>Revenue <b>{fmtMoney(last.revenue)}</b></span><span><i className="green"/>Gross Profit <b>{fmtMoney(last.profit)}</b></span></div>
+   <svg className="trend-svg" viewBox="0 0 100 100" preserveAspectRatio="none" aria-label="30-day sales trend">
+    <defs><linearGradient id="revenueFillV2" x1="0" x2="0" y1="0" y2="1"><stop offset="0%" stopColor="#2f80ed" stopOpacity=".24"/><stop offset="100%" stopColor="#2f80ed" stopOpacity="0"/></linearGradient></defs>
+    <g className="chart-grid"><path d="M0 18H100M0 36H100M0 54H100M0 72H100M0 90H100"/></g>
+    <polygon points={`0,90 ${pts("revenue")} 100,90`} fill="url(#revenueFillV2)"/>
+    <polyline points={pts("revenue")} className="line revenue"/>
+    <polyline points={pts("profit")} className="line profit"/>
+    <circle cx="100" cy={90-(Number(last.revenue||0)/max)*72} r="1.2" className="chart-dot revenue-dot"/>
+    <circle cx="100" cy={90-(Number(last.profit||0)/max)*72} r="1.2" className="chart-dot profit-dot"/>
+   </svg>
+   <div className="chart-x">{labelIndexes.map((idx,i)=><span key={`${idx}-${i}`}>{formatAxisDate(valid[idx]?.date)}</span>)}</div>
+   <div className="chart-legend"><span><i className="blue"/>Revenue</span><span><i className="green"/>Gross Profit</span></div>
+ </div>
+}
+
+function ChannelChart({rows}:{rows:any[]}){
+ const vals=(rows||[]).map((x:any)=>({...x,value:Number(x.value||0)}));
+ const total=vals.reduce((s:number,x:any)=>s+x.value,0);
+ const colors=["#2f80ed","#22b8a8","#f5a623","#7c5ce7"];
+ let cumulative=0;
+ const stops=vals.map((x:any,i:number)=>{const start=total?cumulative/total*100:0;cumulative+=x.value;const end=total?cumulative/total*100:0;return `${colors[i%colors.length]} ${start}% ${end}%`});
+ return <div className="channel-layout"><div className="donut" style={{background:total?`conic-gradient(${stops.join(",")})`:'#eef2f7'}}><div><strong>{fmtMoney(total)}</strong><small>Total Sales</small></div></div><div className="channel-list">{vals.map((x:any,i:number)=><div key={x.name}><span><i style={{background:colors[i%colors.length]}}/>{x.name}</span><strong>{fmtMoney(x.value)} <small>{total?Math.round(x.value/total*100):0}%</small></strong></div>)}</div></div>
+}
+function Health({tone,value,label,icon}:{tone:string;value:number;label:string;icon:string}){return <div className={`health-tile ${tone}`}><span><Icon name={icon} size={15}/></span><strong>{fmtNum(value)}</strong><small>{label}</small></div>}
+function FinanceRow({icon,label,value,strong=false}:{icon:string;label:string;value:string;strong?:boolean}){return <div className={strong?"finance-row strong":"finance-row"}><span><i><Icon name={icon} size={12}/></i>{label}</span><b>{value}</b></div>}
+function Quick({href,icon,label,tone}:{href:string;icon:string;label:string;tone:string}){return <Link href={href} className={`quick-tile ${tone}`}><span><Icon name={icon} size={21}/></span><strong>{label}</strong></Link>}
+function TopProducts({rows}:{rows:any[]}){return <div className="modern-table products-table"><div className="modern-tr header"><span>#</span><span>Product</span><span>Category</span><span>Units Sold</span><span>Revenue</span></div>{rows?.length?rows.map((x:any,i:number)=><div className="modern-tr" key={i}><span>{i+1}</span><span><strong>{x.name}</strong></span><span>{prettyCategory(x.category)}</span><span>{fmtNum(x.units)}</span><span><b>{fmtMoney(x.revenue)}</b></span></div>):<div className="table-empty">No completed product sales yet.</div>}</div>}
+function Activity({rows}:{rows:any[]}){return <div className="modern-table activity-table"><div className="modern-tr header"><span>Time</span><span>Type</span><span>Reference</span><span>Description</span><span>User</span></div>{rows?.length?rows.slice(0,5).map((x:any,i:number)=><div className="modern-tr" key={i}><span>{formatTime(x.OccurredAt)}</span><span><i className={`activity-dot dot-${i%4}`}/>{x.Module||x.Action}</span><span className="activity-ref">{shortRef(x.EntityId||x.EntityType)}</span><span>{x.Description||`${x.Action} ${x.EntityType||"record"}`}</span><span>{x.DisplayName||"System"}</span></div>):<div className="table-empty">No recent controlled activity.</div>}</div>}
+function fmtMoney(v:any){return v==null||Number.isNaN(Number(v))?"—":money.format(Number(v))}
+function fmtNum(v:any){return v==null?"—":count.format(Number(v)||0)}
+function compact(v:number){if(v>=1e6)return `₦${(v/1e6).toFixed(1)}M`;if(v>=1e3)return `₦${Math.round(v/1e3)}K`;return `₦${Math.round(v)}`}
+function formatTime(v:any){if(!v)return "—";return new Intl.DateTimeFormat("en-GB",{hour:"2-digit",minute:"2-digit",timeZone:appConfig.timezone}).format(new Date(v))}
+function formatShortDate(v:any){if(!v)return "";return new Intl.DateTimeFormat("en-GB",{day:"2-digit",month:"short",year:"numeric",timeZone:appConfig.timezone}).format(new Date(v))}
+function formatAxisDate(v:any){if(!v)return "";return new Intl.DateTimeFormat("en-GB",{day:"2-digit",month:"short",timeZone:appConfig.timezone}).format(new Date(v))}
+function marginPct(gross:any,revenue:any){const r=Number(revenue||0);return r>0?`${(Number(gross||0)/r*100).toFixed(1)}%`:"0.0%"}
+function severity(v:any){const s=String(v||"").toLowerCase();return s.includes("crit")||s.includes("danger")?"danger":s.includes("warn")?"orange":"info"}
+function prettyCategory(v:any){const s=String(v||"Catalogue").replace(/_/g," ").toLowerCase();return s.replace(/\b\w/g,c=>c.toUpperCase())}
+function shortRef(v:any){const s=String(v||"—");return s.length>16?`${s.slice(0,7)}…${s.slice(-5)}`:s}

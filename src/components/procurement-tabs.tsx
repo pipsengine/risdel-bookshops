@@ -1,0 +1,2 @@
+import Link from "next/link";
+export function ProcurementTabs({active}:{active:string}){const tabs=[["Overview","/purchasing"],["Purchase Requests","/purchasing/requests"],["Purchase Orders","/purchasing/orders"],["Goods Receipts","/purchasing/receipts"],["Supplier Returns","/purchasing/returns"],["Reorder Planning","/purchasing/reorder"]];return <div className="catalogue-tabs">{tabs.map(([label,href])=><Link key={label} className={active===label?"active":""} href={href}>{label}</Link>)}</div>}

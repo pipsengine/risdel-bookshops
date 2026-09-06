@@ -1,0 +1,5 @@
+"use client";
+import { useActionState } from "react";
+import { importProductsCsv, type CatalogueActionState } from "@/app/actions/catalogue";
+const initial:CatalogueActionState={};
+export function CatalogueImportForm(){const [state,action,pending]=useActionState(importProductsCsv,initial);return <form action={action} className="form-stack" encType="multipart/form-data">{state.error&&<div className="alert alert-danger">{state.error}</div>}{state.success&&<div className="alert alert-success">{state.success}</div>}<label className="field"><span>CSV file *</span><input type="file" name="file" accept=".csv,text/csv" required/><small>Maximum 500 data rows per import. Existing product codes are skipped rather than overwritten.</small></label><label className="check-field"><input type="checkbox" name="dryRun" defaultChecked/><span><strong>Validation only</strong><small>Recommended first. Untick only after the validation result is clean.</small></span></label><button className="btn btn-primary" disabled={pending}>{pending?"Processing…":"Validate / Import CSV"}</button></form>}

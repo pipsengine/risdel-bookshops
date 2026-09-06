@@ -1,59 +1,39 @@
-﻿# Google Sheets setup for Risdel Bookshops
+# Risdel Books — Google Sheets Provider Setup
 
-Google Sheets is the **active interim data provider**. The application architecture stays provider-agnostic.
+Risdel Books v0.4.1 uses Google Sheets as the default persistence provider while preserving the SQL Server provider for future migration.
 
-## Steps
+## 1. Private spreadsheet
+Use the existing **Risdel Books Database** spreadsheet. Keep General access set to **Restricted** and share it only with the Google Cloud service-account email as **Editor**.
 
-1. **Create a Google Cloud project** in [Google Cloud Console](https://console.cloud.google.com/).
-2. **Enable the Google Sheets API** for that project.
-3. **Create a service account** (IAM → Service Accounts → Create).
-4. **Create a JSON key** for the service account and download it.  
-   Do **not** commit this file. Prefer copying values into `.env.local`.
-5. **Create a Google Spreadsheet** named e.g. `RISDEL BOOKSHOPS DATABASE`.
-6. Copy the **spreadsheet ID** from the URL:  
-   `https://docs.google.com/spreadsheets/d/<SPREADSHEET_ID>/edit`
-7. **Share the spreadsheet** with the service account email (`client_email` from the JSON).  
-   Grant **Editor** access. Keep the spreadsheet **private** (not "anyone with the link").
-8. Configure `.env.local`:
+Configured spreadsheet ID for this project:
+`1P1gFMGXcCWdxbPaNH24BHk9-NW_yqFqydj16QyGYIQw`
 
-```env
-DATA_PROVIDER=google-sheets
-GOOGLE_SHEETS_SPREADSHEET_ID=your-spreadsheet-id
-GOOGLE_SERVICE_ACCOUNT_EMAIL=your-sa@project.iam.gserviceaccount.com
-GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY="-----BEGIN PRIVATE KEY-----\n...\n-----END PRIVATE KEY-----\n"
-GOOGLE_SHEETS_CACHE_TTL_SECONDS=30
-```
+## 2. Configure environment
+Copy `.env.example` to `.env.local`. Set:
+- `DATA_PROVIDER=google-sheets`
+- `GOOGLE_SHEETS_SPREADSHEET_ID`
+- `GOOGLE_SERVICE_ACCOUNT_EMAIL`
+- `GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY`
 
-Private key newlines: if stored in `.env`, escape as `\n`. The application converts `\\n` to real newlines.
+Keep the private key on the server only. Never commit `.env.local` or the service-account JSON file.
 
-9. Initialise tabs, headers, and seed data:
-
+## 3. Install and initialize
 ```bash
+npm install
 npm run sheets:init
-```
-
-10. Start the app:
-
-```bash
 npm run dev
 ```
 
-11. Verify:
+`sheets:init` is idempotent. It creates missing worksheets, headers, foundation seed data, standard roles and permissions, Risdel Enterprise, Main Store, Main Warehouse, schema metadata, and the bootstrap administrator if missing.
 
-- `http://localhost:3000/api/health`
-- Administration → System information
-- Administration → Data provider
+## 4. First sign-in
+Use the values configured in `BOOTSTRAP_ADMIN_EMAIL` and `BOOTSTRAP_ADMIN_PASSWORD`. The seeded administrator is required to change the temporary password.
 
-## Useful commands
+## 5. Verify
+Open **Administration → Data Provider**. Provider status should be `Healthy` and all required worksheets should be available.
 
-| Command | Purpose |
-|---------|---------|
-| `npm run sheets:init` | Create missing tabs, headers, seed foundation data (idempotent) |
-| `npm run sheets:migrate` | Record/apply schema migration versions |
-| `npm run sheets:export` | Export all entity sheets to `exports/<date>/` JSON + CSV |
-
-## Login after seed
-
-The initializer seeds `Auth_Users` using `BOOTSTRAP_ADMIN_EMAIL` / `BOOTSTRAP_ADMIN_PASSWORD` with a **bcrypt** password hash (never plain text).
-
-Until the admin user exists, Module 00 still allows bootstrap env login when the user row is missing.
+## Backup/export
+```bash
+npm run sheets:export
+```
+Exports every worksheet to `exports/YYYY-MM-DD/*.json`. The `exports/` directory is ignored by Git.

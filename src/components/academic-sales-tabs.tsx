@@ -1,0 +1,2 @@
+import Link from "next/link";
+export function AcademicSalesTabs({active}:{active:string}){const tabs=[["Overview","/academic-sales"],["Schools","/academic-sales/schools"],["Book Lists","/academic-sales/book-lists"],["Orders","/academic-sales/orders"],["Availability","/academic-sales/availability"]];return <div className="catalogue-tabs">{tabs.map(([l,h])=><Link key={l} className={active===l?"active":""} href={h}>{l}</Link>)}</div>}

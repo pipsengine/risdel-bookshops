@@ -1,33 +1,24 @@
 import crypto from "crypto";
-import bcrypt from "bcryptjs";
 
 const KEYLEN = 64;
 
 export async function hashPassword(password: string) {
   const salt = crypto.randomBytes(16).toString("hex");
   const derived = await new Promise<Buffer>((resolve, reject) => {
-    crypto.scrypt(password, salt, KEYLEN, (err, key) => (err ? reject(err) : resolve(key as Buffer)));
+    crypto.scrypt(password, salt, KEYLEN, (err, key) => err ? reject(err) : resolve(key as Buffer));
   });
   return `scrypt$${salt}$${derived.toString("hex")}`;
 }
 
 export async function verifyPassword(password: string, stored?: string | null) {
   if (!stored) return false;
-  if (stored.startsWith("scrypt$")) {
-    const [, salt, expectedHex] = stored.split("$");
-    if (!salt || !expectedHex) return false;
-    const derived = await new Promise<Buffer>((resolve, reject) => {
-      crypto.scrypt(password, salt, KEYLEN, (err, key) => (err ? reject(err) : resolve(key as Buffer)));
-    });
-    const expected = Buffer.from(expectedHex, "hex");
-    return expected.length === derived.length && crypto.timingSafeEqual(expected, derived);
-  }
-  // Legacy seed / Module 00 bcrypt hashes
-  try {
-    return await bcrypt.compare(password, stored);
-  } catch {
-    return false;
-  }
+  const [scheme, salt, expectedHex] = stored.split("$");
+  if (scheme !== "scrypt" || !salt || !expectedHex) return false;
+  const derived = await new Promise<Buffer>((resolve, reject) => {
+    crypto.scrypt(password, salt, KEYLEN, (err, key) => err ? reject(err) : resolve(key as Buffer));
+  });
+  const expected = Buffer.from(expectedHex, "hex");
+  return expected.length === derived.length && crypto.timingSafeEqual(expected, derived);
 }
 
 export function validatePasswordPolicy(password: string) {

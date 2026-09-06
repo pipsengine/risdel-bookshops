@@ -1,0 +1,16 @@
+"use client";
+import { useActionState } from "react";
+import { createAcademicMaster, type CatalogueActionState } from "@/app/actions/catalogue";
+const initial:CatalogueActionState={};
+export function AcademicMasterForm({kind,levels,sessions,categories}:{kind:"curriculum"|"session"|"term"|"class"|"category-parent";levels?:any[];sessions?:any[];categories?:any[]}){
+ const [state,action,pending]=useActionState(createAcademicMaster,initial);
+ const label=kind==="curriculum"?"Curriculum":kind==="session"?"Academic session":kind==="term"?"Term":kind==="class"?"Class":"Category relationship";
+ return <form action={action} className="form-stack"><input type="hidden" name="kind" value={kind}/>{state.error&&<div className="alert alert-danger">{state.error}</div>}{state.success&&<div className="alert alert-success">{state.success}</div>}
+ {kind==="category-parent"?<><label className="field"><span>Parent category *</span><select name="parentCategoryId" required><option value="">Select parent</option>{categories?.map(x=><option key={x.Id} value={x.Id}>{x.Name}</option>)}</select></label><label className="field"><span>Child category *</span><select name="childCategoryId" required><option value="">Select child</option>{categories?.map(x=><option key={x.Id} value={x.Id}>{x.Name}</option>)}</select></label></>:<><label className="field"><span>{label} name *</span><input name="name" required/></label><label className="field"><span>Code *</span><input name="code" required placeholder={kind==="session"?"2026-2027":"Unique code"}/></label></>}
+ {kind==="curriculum"&&<><label className="field"><span>Authority</span><input name="authority" placeholder="NERDC / WAEC / School-specific"/></label><label className="field"><span>Country</span><input name="country" defaultValue="Nigeria"/></label></>}
+ {kind==="session"&&<><label className="field"><span>Start date</span><input type="date" name="startDate"/></label><label className="field"><span>End date</span><input type="date" name="endDate"/></label><label className="check-field"><input type="checkbox" name="isCurrent"/><span><strong>Current session</strong><small>Making this current will unset any previous current session.</small></span></label></>}
+ {kind==="term"&&<><label className="field"><span>Academic session *</span><select name="sessionId" required><option value="">Select session</option>{sessions?.map(x=><option key={x.Id} value={x.Id}>{x.Name}</option>)}</select></label><label className="field"><span>Sort order</span><input type="number" name="sortOrder" min="1" defaultValue="1"/></label><label className="field"><span>Start date</span><input type="date" name="startDate"/></label><label className="field"><span>End date</span><input type="date" name="endDate"/></label></>}
+ {kind==="class"&&<><label className="field"><span>Academic level *</span><select name="academicLevelId" required><option value="">Select level</option>{levels?.map(x=><option key={x.Id} value={x.Id}>{x.Name}</option>)}</select></label><label className="field"><span>Sort order</span><input type="number" name="sortOrder" min="1" defaultValue="1"/></label></>}
+ {kind!=="category-parent"&&<label className="field"><span>Description</span><textarea name="description" rows={3}/></label>}
+ <button disabled={pending} className="btn btn-primary">{pending?"Saving…":`Add ${label}`}</button></form>
+}

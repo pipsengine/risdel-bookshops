@@ -1,0 +1,23 @@
+import {getRows,SHEETS} from "@/lib/sheets";
+const yes=(v:any)=>v===true||String(v).toLowerCase()==="true"||String(v)==="1";
+const num=(v:any)=>Number(v||0);
+export const returnMoney=(n:number)=>new Intl.NumberFormat("en-NG",{style:"currency",currency:"NGN",maximumFractionDigits:2}).format(n||0);
+export async function returnsContext(){
+ const [returns,lines,credits,exchanges,customers,products,warehouses]=await Promise.all([
+  getRows(SHEETS.salesReturns),getRows(SHEETS.salesReturnLines),getRows(SHEETS.salesCredits),getRows(SHEETS.salesExchanges),getRows(SHEETS.salesCustomers),getRows(SHEETS.catalogueProducts),getRows(SHEETS.warehouses)
+ ]);
+ return {
+  returns:returns.filter((r:any)=>yes(r.IsActive??true)).sort((a:any,b:any)=>String(b.CreatedAt).localeCompare(String(a.CreatedAt))).map((r:any)=>({...r,TotalRefund:num(r.TotalRefund),TotalCredit:num(r.TotalCredit),CustomerName:customers.find((c:any)=>c.Id===r.CustomerId)?.Name||r.CustomerName||"Walk-in Customer",WarehouseName:warehouses.find((w:any)=>w.Id===r.WarehouseId)?.Name||""})),
+  lines:lines.filter((r:any)=>yes(r.IsActive??true)).map((r:any)=>({...r,QuantityReturned:num(r.QuantityReturned),UnitPrice:num(r.UnitPrice),RefundAmount:num(r.RefundAmount),ProductName:products.find((p:any)=>p.Id===r.ProductId)?.Name||r.ProductName||"Product"})),
+  credits:credits.filter((r:any)=>yes(r.IsActive??true)).map((r:any)=>({...r,Amount:num(r.Amount),BalanceRemaining:num(r.BalanceRemaining)})),
+  exchanges:exchanges.filter((r:any)=>yes(r.IsActive??true)).map((r:any)=>({...r,OriginalValue:num(r.OriginalValue),ReplacementValue:num(r.ReplacementValue),DifferenceAmount:num(r.DifferenceAmount)}))
+ };
+}
+export async function eligibleSales(limit=150){
+ const [sales,saleLines,invoices,invoiceLines,customers,products,warehouses,returnLines]=await Promise.all([getRows(SHEETS.salesTransactions),getRows(SHEETS.salesLines),getRows(SHEETS.salesInvoices),getRows(SHEETS.salesInvoiceLines),getRows(SHEETS.salesCustomers),getRows(SHEETS.catalogueProducts),getRows(SHEETS.warehouses),getRows(SHEETS.salesReturnLines)]);
+ const returnedBy=new Map<string,number>();for(const r of returnLines.filter((x:any)=>yes(x.IsActive??true)&&x.Status!=="CANCELLED")){const k=`${r.SourceType}:${r.SourceLineId}`;returnedBy.set(k,(returnedBy.get(k)||0)+num(r.QuantityReturned));}
+ const pos=sales.filter((s:any)=>s.Status==="COMPLETED"&&yes(s.IsActive??true)).flatMap((s:any)=>saleLines.filter((l:any)=>l.SaleId===s.Id&&yes(l.IsActive??true)).map((l:any)=>{const returned=returnedBy.get(`POS:${l.Id}`)||0;return {SourceType:"POS",SourceId:s.Id,SourceNumber:s.SaleNumber,SourceLineId:l.Id,CustomerId:s.CustomerId||"",CustomerName:customers.find((c:any)=>c.Id===s.CustomerId)?.Name||s.CustomerName||"Walk-in Customer",WarehouseId:s.WarehouseId,WarehouseName:warehouses.find((w:any)=>w.Id===s.WarehouseId)?.Name||"",ProductId:l.ProductId,ProductName:products.find((p:any)=>p.Id===l.ProductId)?.Name||l.ProductName||"Product",QuantitySold:num(l.Quantity),QuantityReturned:returned,QuantityReturnable:Math.max(0,num(l.Quantity)-returned),UnitPrice:num(l.UnitPrice),DiscountAmount:num(l.DiscountAmount),SaleDate:s.CompletedAt||s.CreatedAt}}));
+ const inv=invoices.filter((i:any)=>!['VOID','CANCELLED'].includes(String(i.Status))&&yes(i.IsActive??true)).flatMap((i:any)=>invoiceLines.filter((l:any)=>l.InvoiceId===i.Id&&yes(l.IsActive??true)).map((l:any)=>{const returned=returnedBy.get(`INVOICE:${l.Id}`)||0;return {SourceType:"INVOICE",SourceId:i.Id,SourceNumber:i.InvoiceNumber,SourceLineId:l.Id,CustomerId:i.CustomerId||"",CustomerName:customers.find((c:any)=>c.Id===i.CustomerId)?.Name||i.CustomerName||"Customer",WarehouseId:"",WarehouseName:"",ProductId:l.ProductId,ProductName:products.find((p:any)=>p.Id===l.ProductId)?.Name||l.ProductName||"Product",QuantitySold:num(l.Quantity),QuantityReturned:returned,QuantityReturnable:Math.max(0,num(l.Quantity)-returned),UnitPrice:num(l.UnitPrice),DiscountAmount:num(l.DiscountAmount),SaleDate:i.InvoiceDate||i.CreatedAt}}));
+ return [...pos,...inv].filter((x:any)=>x.QuantityReturnable>0).sort((a:any,b:any)=>String(b.SaleDate).localeCompare(String(a.SaleDate))).slice(0,limit);
+}
+export async function returnsSummary(){const {returns}=await returnsContext();const month=new Date().toISOString().slice(0,7),m=returns.filter((r:any)=>String(r.CreatedAt).startsWith(month)&&r.Status!=="CANCELLED");return {monthReturns:m.length,monthRefunds:m.reduce((s:number,r:any)=>s+r.TotalRefund,0),pendingApproval:returns.filter((r:any)=>r.Status==="PENDING_APPROVAL").length,openExchanges:returns.filter((r:any)=>r.ResolutionType==="EXCHANGE"&&!['COMPLETED','CANCELLED'].includes(r.Status)).length}}

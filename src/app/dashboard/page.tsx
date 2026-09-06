@@ -2,7 +2,7 @@ import Link from "next/link";
 import { AppShell } from "@/components/app-shell";
 import { appConfig } from "@/config/app";
 import { can, requirePermission } from "@/lib/authz";
-import { persistenceHealth } from "@/data";
+import { persistenceHealth } from "@/lib/persistence-health";
 import { listBranches } from "@/features/organisation/data";
 import { executiveDashboardData } from "@/features/dashboard/data";
 
@@ -33,7 +33,7 @@ export default async function Dashboard({searchParams}:{searchParams:Promise<Par
       <div className="dashboard-controls"><form method="get" className="branch-filter"><label htmlFor="branch">Operating scope</label><select id="branch" name="branch" defaultValue={validBranch?String(validBranch.Id):""}><option value="">All branches</option>{branches.filter((b:any)=>b.IsActive).map((b:any)=><option key={String(b.Id)} value={String(b.Id)}>{b.Name}</option>)}</select><button className="btn btn-secondary btn-xs" type="submit">Apply</button></form><span className="badge badge-info">v{appConfig.version}</span></div>
     </div>
 
-    {!data.connected&&<div className="alert alert-warning dashboard-alert">The data provider (Google Sheets) is not configured or unavailable in this environment. The dashboard remains usable as a setup preview, but live management metrics require a healthy Sheets connection.</div>}
+    {!data.connected&&<div className="alert alert-warning dashboard-alert">The active data provider is unavailable or not fully configured. Live management metrics will resume when provider connectivity is restored.</div>}
 
     <section className="exec-kpi-grid">
       <Kpi label="Sales today" value={financialVisible?formatMoney(data.business.salesToday):"Restricted"} meta={financialVisible?(data.domains.sales?"Live sales metric":"Activates with Sales module"):"Financial dashboard permission required"} status={financialVisible&&data.domains.sales?"live":"planned"}/>
@@ -54,7 +54,7 @@ export default async function Dashboard({searchParams}:{searchParams:Promise<Par
             <Metric label="Open purchase orders" value={executiveVisible?formatNumber(data.business.purchaseOrdersOpen):"Restricted"} ready={executiveVisible&&data.domains.procurement} restricted={!executiveVisible}/>
             <Metric label="Low-stock items" value={executiveVisible?formatNumber(data.business.lowStock):"Restricted"} ready={executiveVisible&&data.domains.inventory} restricted={!executiveVisible}/>
           </div>
-          <div className="domain-readiness"><Domain name="Catalogue" installed={data.domains.catalogue}/><Domain name="Inventory" installed={data.domains.inventory}/><Domain name="Sales" installed={data.domains.sales}/><Domain name="Procurement" installed={data.domains.procurement}/><Domain name="Finance" installed={data.domains.finance}/></div>
+          <div className="domain-readiness"><Domain name="Catalogue" installed={data.domains.catalogue}/><Domain name="Inventory" installed={data.domains.inventory}/><Domain name="Sales" installed={data.domains.sales}/><Domain name="CRM" installed={Boolean((data.domains as any).crm)}/><Domain name="Procurement" installed={data.domains.procurement}/><Domain name="Finance" installed={data.domains.finance}/></div>
         </section>
 
         <section className="card section">
@@ -81,7 +81,7 @@ export default async function Dashboard({searchParams}:{searchParams:Promise<Par
 
         {securityVisible&&<section className="card section"><h2>Access & security</h2><p>Company-wide identity controls.</p><div className="security-score-grid"><div><span>Active users</span><strong>{data.security.ActiveUsers}</strong></div><div><span>Active roles</span><strong>{data.security.ActiveRoles}</strong></div><div><span>Locked</span><strong className={data.security.LockedUsers?"danger-text":""}>{data.security.LockedUsers}</strong></div><div><span>Inactive</span><strong>{data.security.InactiveUsers}</strong></div></div>{can(session,"admin.users.view")&&<Link href="/administration/users" className="btn btn-secondary full-button">Manage users</Link>}</section>}
 
-        <section className="card section"><h2>Quick actions</h2><p>Common setup and management tasks.</p><div className="quick-action-list">{can(session,"organisation.company.view")&&<Quick href="/administration/company" title="Company profile" detail="Business identity & defaults"/>}{can(session,"organisation.branches.view")&&<Quick href="/administration/branches" title="Branches" detail="Operating locations"/>}{can(session,"organisation.warehouses.view")&&<Quick href="/administration/warehouses" title="Warehouses" detail="Stock locations & controls"/>}{can(session,"admin.roles.view")&&<Quick href="/administration/roles" title="Roles & permissions" detail="Access control matrix"/>}</div></section>
+        <section className="card section"><h2>Quick actions</h2><p>Common setup and management tasks.</p><div className="quick-action-list">{can(session,"crm.customers.view")&&<Quick href="/customers" title="Customers & CRM" detail="Accounts, relationships & statements"/>}{can(session,"organisation.company.view")&&<Quick href="/administration/company" title="Company profile" detail="Business identity & defaults"/>}{can(session,"organisation.branches.view")&&<Quick href="/administration/branches" title="Branches" detail="Operating locations"/>}{can(session,"organisation.warehouses.view")&&<Quick href="/administration/warehouses" title="Warehouses" detail="Stock locations & controls"/>}{can(session,"admin.roles.view")&&<Quick href="/administration/roles" title="Roles & permissions" detail="Access control matrix"/>}</div></section>
 
         <section className="card section system-strip"><div><span>Data provider</span><strong className={db.status==="Healthy"?"success-text":"warning-text"}>{db.status}</strong></div><div><span>Environment</span><strong>{appConfig.environment}</strong></div><div><span>Release</span><strong>{appConfig.version}</strong></div></section>
       </aside>

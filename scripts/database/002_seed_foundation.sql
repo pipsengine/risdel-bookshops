@@ -2,7 +2,7 @@
 SET XACT_ABORT ON;BEGIN TRANSACTION;
 DECLARE @CompanyId uniqueidentifier,@BranchId uniqueidentifier;
 SELECT @CompanyId=Id FROM system.Companies WHERE Code='RISDEL';
-IF @CompanyId IS NULL BEGIN SET @CompanyId=NEWID();INSERT system.Companies(Id,Code,Name,TradingName,Country,CurrencyCode,TimeZone) VALUES(@CompanyId,'RISDEL','Risdel Enterprise','Risdel Bookshops','Nigeria','NGN','Africa/Lagos');END;
+IF @CompanyId IS NULL BEGIN SET @CompanyId=NEWID();INSERT system.Companies(Id,Code,Name,TradingName,Country,CurrencyCode,TimeZone) VALUES(@CompanyId,'RISDEL','Risdel Enterprise','Risdel Books','Nigeria','NGN','Africa/Lagos');END;
 SELECT @BranchId=Id FROM system.Branches WHERE CompanyId=@CompanyId AND Code='MAIN';
 IF @BranchId IS NULL BEGIN SET @BranchId=NEWID();INSERT system.Branches(Id,CompanyId,Code,Name,BranchType,IsHeadOffice) VALUES(@BranchId,@CompanyId,'MAIN','Main Store','RETAIL',1);END;
 IF NOT EXISTS(SELECT 1 FROM system.Warehouses WHERE BranchId=@BranchId AND Code='MAIN-STORE') INSERT system.Warehouses(BranchId,Code,Name,WarehouseType,AllowSales) VALUES(@BranchId,'MAIN-STORE','Main Store','STORE',1);

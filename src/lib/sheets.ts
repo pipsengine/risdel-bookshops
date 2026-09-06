@@ -1,0 +1,75 @@
+import { google } from "googleapis";
+import crypto from "crypto";
+
+export const SHEETS={
+ migrations:"System_SchemaMigrations",companies:"System_Companies",branches:"System_Branches",warehouses:"System_Warehouses",settings:"System_Settings",sequences:"System_NumberSequences",
+ users:"Auth_Users",roles:"Auth_Roles",permissions:"Auth_Permissions",userRoles:"Auth_UserRoles",rolePermissions:"Auth_RolePermissions",sessions:"Auth_UserSessions",passwordHistory:"Auth_PasswordHistory",
+ auditLogs:"Audit_Logs",loginHistory:"Audit_LoginHistory",notifications:"System_Notifications",documents:"System_Documents",dashboardMetrics:"Dashboard_Metrics",dashboardAlerts:"Dashboard_Alerts",dashboardPreferences:"Dashboard_Preferences",
+ catalogueProducts:"Catalogue_Products",catalogueBooks:"Catalogue_Books",catalogueAuthors:"Catalogue_Authors",cataloguePublishers:"Catalogue_Publishers",catalogueCategories:"Catalogue_Categories",catalogueSubjects:"Catalogue_Subjects",catalogueAcademicLevels:"Catalogue_AcademicLevels",catalogueProductAuthors:"Catalogue_ProductAuthors",catalogueBarcodes:"Catalogue_ProductBarcodes",cataloguePriceHistory:"Catalogue_PriceHistory",catalogueCurricula:"Catalogue_Curricula",catalogueAcademicSessions:"Catalogue_AcademicSessions",catalogueTerms:"Catalogue_Terms",catalogueClasses:"Catalogue_Classes",catalogueCategoryHierarchy:"Catalogue_CategoryHierarchy",catalogueImportJobs:"Catalogue_ImportJobs",catalogueImprints:"Catalogue_Imprints",
+ inventoryBalances:"Inventory_StockBalances",inventoryMovements:"Inventory_StockMovements",inventoryOpening:"Inventory_OpeningStock",inventoryTransfers:"Inventory_Transfers",inventoryTransferLines:"Inventory_TransferLines",inventoryAdjustments:"Inventory_Adjustments",inventoryDamaged:"Inventory_DamagedStock",inventoryReservations:"Inventory_Reservations",
+ salesCustomers:"CRM_Customers",paymentMethods:"System_PaymentMethods",salesShifts:"Sales_CashierShifts",salesTransactions:"Sales_Transactions",salesLines:"Sales_TransactionLines",salesPayments:"Sales_Payments",salesHeld:"Sales_HeldSales",salesHeldLines:"Sales_HeldSaleLines",salesQuotations:"Sales_Quotations",salesQuotationLines:"Sales_QuotationLines",salesOrders:"Sales_Orders",salesOrderLines:"Sales_OrderLines",salesInvoices:"Sales_Invoices",salesInvoiceLines:"Sales_InvoiceLines",salesInvoicePayments:"Sales_InvoicePayments",salesFulfilments:"Sales_Fulfilments",salesFulfilmentLines:"Sales_FulfilmentLines",crmContacts:"CRM_CustomerContacts",crmAddresses:"CRM_CustomerAddresses",crmRelationships:"CRM_CustomerRelationships",crmNotes:"CRM_CustomerNotes",crmActivities:"CRM_CustomerActivities",crmSegments:"CRM_Segments",crmCustomerSegments:"CRM_CustomerSegments",crmLoyaltyLedger:"CRM_LoyaltyLedger",academicSchools:"Academic_Schools",academicBookLists:"Academic_BookLists",academicBookListItems:"Academic_BookListItems",academicOrders:"Academic_Orders",academicOrderLines:"Academic_OrderLines",academicStudents:"Academic_Students",academicSchoolContacts:"Academic_SchoolContacts",salesReservations:"Sales_Reservations",salesSpecialOrders:"Sales_SpecialOrders",salesSpecialOrderEvents:"Sales_SpecialOrderEvents",salesDeposits:"Sales_Deposits",suppliers:"Supplier_Suppliers",supplierContacts:"Supplier_Contacts",supplierAddresses:"Supplier_Addresses",supplierProducts:"Supplier_Products",supplierPublishers:"Supplier_Publishers",supplierReviews:"Supplier_PerformanceReviews",supplierDocuments:"Supplier_Documents",procurementRequests:"Procurement_PurchaseRequests",procurementRequestLines:"Procurement_PurchaseRequestLines",procurementOrders:"Procurement_PurchaseOrders",procurementOrderLines:"Procurement_PurchaseOrderLines",procurementEvents:"Procurement_Events",procurementReceipts:"Procurement_GoodsReceipts",procurementReceiptLines:"Procurement_GoodsReceiptLines",procurementReceiptExceptions:"Procurement_ReceiptExceptions",procurementReturns:"Procurement_SupplierReturns",procurementReturnLines:"Procurement_SupplierReturnLines",procurementCredits:"Procurement_SupplierCredits",procurementThreeWay:"Procurement_ThreeWayMatch",salesReturns:"Sales_CustomerReturns",salesReturnLines:"Sales_CustomerReturnLines",salesRefunds:"Sales_Refunds",salesCredits:"Sales_CustomerCredits",salesExchanges:"Sales_Exchanges"
+} as const;
+export type SheetKey=keyof typeof SHEETS;
+// Intentionally loose: Module 15 enriches rows with spreads; strict SheetRow inference drops base fields (Id, Status, …).
+export type SheetRow=any;
+const cache=new Map<string,{expires:number;rows:SheetRow[]}>();
+function spreadsheetId(){const id=process.env.GOOGLE_SHEETS_SPREADSHEET_ID;if(!id)throw new Error("Google Sheets is the active data provider, but GOOGLE_SHEETS_SPREADSHEET_ID is missing.");return id}
+function normalizePrivateKeyPem(raw:string){
+  let key=raw.trim();
+  if(key.startsWith("{")){
+    try{const parsed=JSON.parse(key) as {private_key?:string}; if(parsed.private_key) key=parsed.private_key;}catch{/* PEM below */}
+  }
+  if((key.startsWith('"')&&key.endsWith('"'))||(key.startsWith("'")&&key.endsWith("'"))) key=key.slice(1,-1).trim();
+  key=key.replace(/\\r\\n/g,"\n").replace(/\\n/g,"\n").replace(/\r\n/g,"\n").replace(/\r/g,"\n");
+  if(!key.includes("\n")&&/BEGIN [A-Z0-9 ]+PRIVATE KEY/.test(key)){
+    const match=key.match(/-----BEGIN ([A-Z0-9 ]+PRIVATE KEY)-----(.+?)-----END \1-----/);
+    if(match){
+      const label=match[1];
+      const body=match[2].replace(/\s+/g,"");
+      const lines=body.match(/.{1,64}/g)||[];
+      key=[`-----BEGIN ${label}-----`,...lines,`-----END ${label}-----`].join("\n");
+    }
+  }
+  if(!/BEGIN [A-Z0-9 ]*PRIVATE KEY/.test(key)){
+    throw new Error("Google service-account private key is not a valid PEM. Prefer GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY_BASE64 on Vercel.");
+  }
+  return key;
+}
+function resolvePrivateKey(){
+  const json=process.env.GOOGLE_SERVICE_ACCOUNT_JSON?.trim();
+  if(json){
+    const parsed=JSON.parse(json) as {private_key?:string};
+    if(!parsed.private_key) throw new Error("GOOGLE_SERVICE_ACCOUNT_JSON is missing private_key.");
+    return normalizePrivateKeyPem(parsed.private_key);
+  }
+  const b64=process.env.GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY_BASE64?.replace(/\s+/g,"");
+  if(b64) return normalizePrivateKeyPem(Buffer.from(b64,"base64").toString("utf8"));
+  const raw=process.env.GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY;
+  if(!raw) throw new Error("Google Sheets service-account private key is not configured.");
+  return normalizePrivateKeyPem(raw);
+}
+function credentials(){
+  const client_email=process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL;
+  if(!client_email) throw new Error("Google Sheets service-account credentials are not configured.");
+  return {client_email,private_key:resolvePrivateKey()};
+}
+async function api(){const auth=new google.auth.GoogleAuth({credentials:credentials(),scopes:["https://www.googleapis.com/auth/spreadsheets"]});return google.sheets({version:"v4",auth})}
+function parse(v:any){if(v==="TRUE"||v==="true")return true;if(v==="FALSE"||v==="false")return false;if(v==="")return null;return v}
+function serialize(v:any){if(v==null)return "";if(v instanceof Date)return v.toISOString();if(typeof v==="object")return JSON.stringify(v);return String(v)}
+export function sheetsConfigured(){
+  return Boolean(
+    process.env.GOOGLE_SHEETS_SPREADSHEET_ID &&
+    process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL &&
+    (process.env.GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY ||
+      process.env.GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY_BASE64 ||
+      process.env.GOOGLE_SERVICE_ACCOUNT_JSON)
+  );
+}
+export async function getRows(sheet:string,force=false){const ttl=Number(process.env.GOOGLE_SHEETS_CACHE_TTL_SECONDS||30)*1000;const hit=cache.get(sheet);if(!force&&hit&&hit.expires>Date.now())return hit.rows;const s=await api();const r=await s.spreadsheets.values.get({spreadsheetId:spreadsheetId(),range:`'${sheet}'`});const values=r.data.values||[];if(!values.length)return [];const headers=(values[0]||[]).map(String);const rows=values.slice(1).filter(row=>row.some(x=>x!=="")).map(row=>Object.fromEntries(headers.map((h,i)=>[h,parse(row[i]??"")])));cache.set(sheet,{expires:Date.now()+ttl,rows});return rows}
+export async function appendRow(sheet:string,row:SheetRow){const rows=await getRows(sheet,true);let headers=rows.length?Object.keys(rows[0]):[];if(!headers.length){const s=await api();const h=await s.spreadsheets.values.get({spreadsheetId:spreadsheetId(),range:`'${sheet}'!1:1`});headers=(h.data.values?.[0]||[]).map(String)}const s=await api();await s.spreadsheets.values.append({spreadsheetId:spreadsheetId(),range:`'${sheet}'!A1`,valueInputOption:"RAW",insertDataOption:"INSERT_ROWS",requestBody:{values:[headers.map(h=>serialize(row[h]))]}});cache.delete(sheet);return row}
+export async function updateRow(sheet:string,id:string,patch:SheetRow){const s=await api();const r=await s.spreadsheets.values.get({spreadsheetId:spreadsheetId(),range:`'${sheet}'`});const values=r.data.values||[];const headers=(values[0]||[]).map(String);const idCol=headers.indexOf("Id");const idx=values.findIndex((row,i)=>i>0&&String(row[idCol]||"")===id);if(idx<1)throw new Error(`Record ${id} not found in ${sheet}.`);const current=Object.fromEntries(headers.map((h,i)=>[h,parse(values[idx][i]??"")]));const merged={...current,...patch};await s.spreadsheets.values.update({spreadsheetId:spreadsheetId(),range:`'${sheet}'!A${idx+1}`,valueInputOption:"RAW",requestBody:{values:[headers.map(h=>serialize(merged[h]))]}});cache.delete(sheet);return merged}
+export async function deleteRowsWhere(sheet:string,predicate:(r:SheetRow)=>boolean){const rows=await getRows(sheet,true);for(const row of rows.filter(predicate))if(row.Id)await updateRow(sheet,String(row.Id),{IsActive:false,DeletedAt:new Date().toISOString()});}
+export async function findById(sheet:string,id:string){return (await getRows(sheet)).find(r=>String(r.Id)===id)||null}
+export function newId(){return crypto.randomUUID()}
+export async function sheetsHealth(){if(!sheetsConfigured())return {status:"Not configured" as const,detail:"Set Google Sheets variables in .env.local"};try{const s=await api();await s.spreadsheets.get({spreadsheetId:spreadsheetId(),fields:"spreadsheetId,properties.title"});return {status:"Healthy" as const,detail:"Private Google Sheets connection successful"}}catch(e){return {status:"Unavailable" as const,detail:e instanceof Error?e.message:"Google Sheets connection failed"}}
+}

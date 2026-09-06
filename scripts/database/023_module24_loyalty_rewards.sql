@@ -1,0 +1,6 @@
+-- Module 24 relational migration reference
+-- Future SQL implementation: CRM.LoyaltyTiers, LoyaltyRules, LoyaltyMemberships,
+-- LoyaltyVouchers, LoyaltyVoucherUses, LoyaltyWallets, LoyaltyWalletTransactions,
+-- LoyaltyCampaigns and the existing CRM.LoyaltyLedger.
+-- Preserve customer, membership, voucher, wallet and ledger UUIDs from Google Sheets.
+-- POS sales should retain LoyaltyPointsRedeemed, LoyaltyPointsEarned, RewardDiscount and VoucherCode.

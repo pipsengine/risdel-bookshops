@@ -1,0 +1,2 @@
+import Link from "next/link";
+export function LoyaltyTabs({active}:{active:string}){const tabs=[["Overview","/customers/loyalty"],["Tiers","/customers/loyalty/tiers"],["Rules","/customers/loyalty/rules"],["Vouchers","/customers/loyalty/vouchers"],["Wallets","/customers/loyalty/wallets"],["Campaigns","/customers/loyalty/campaigns"]];return <div className="catalogue-tabs">{tabs.map(([label,href])=><Link key={label} className={active===label?"active":""} href={href}>{label}</Link>)}</div>}

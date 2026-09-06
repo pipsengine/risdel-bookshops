@@ -1,0 +1,3 @@
+-- Module 23 relational migration reference
+-- Future SQL implementation: Inventory.Stocktakes, StocktakeLines, StocktakeRecounts, StocktakeApprovals, StocktakeLocks.
+-- Preserve UUIDs from the Google Sheets provider during migration.

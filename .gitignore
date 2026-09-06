@@ -19,7 +19,6 @@ Thumbs.db
 exports/
 credentials*.json
 *service-account*.json
-
 .env.production.local
 .vercel-sheets-key.b64.txt
 scripts/*.json

@@ -1,6 +1,6 @@
 {
   "name": "risdel-bookshops",
-  "version": "0.16.0",
+  "version": "0.26.0",
   "private": true,
   "scripts": {
     "dev": "next dev",

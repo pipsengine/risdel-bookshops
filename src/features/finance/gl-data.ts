@@ -1,0 +1,9 @@
+import {getRows,SHEETS} from "@/lib/sheets";
+const n=(v:any)=>Number(v||0), active=(r:any)=>String(r.IsActive??true)!=="false";
+export async function glWorkspace(){
+ const [coa,journals,lines,entries,runs,periods,branches]=await Promise.all([getRows(SHEETS.financeChartOfAccounts),getRows(SHEETS.financeJournals),getRows(SHEETS.financeJournalLines),getRows(SHEETS.financeLedgerEntries),getRows(SHEETS.financePostingRuns),getRows(SHEETS.financePeriods),getRows(SHEETS.branches)]);
+ const accts=coa.filter(active); const posted=journals.filter((j:any)=>active(j)&&j.Status==="POSTED");
+ const trial=accts.map((a:any)=>{const ls=lines.filter((l:any)=>active(l)&&l.AccountId===a.Id&&posted.some((j:any)=>j.Id===l.JournalId));const debit=ls.reduce((x:number,l:any)=>x+n(l.Debit),0),credit=ls.reduce((x:number,l:any)=>x+n(l.Credit),0);return {...a,Debit:debit,Credit:credit,Balance:debit-credit}}).filter((a:any)=>a.Debit||a.Credit);
+ return {coa:accts,journals:posted,lines:lines.filter(active),entries:entries.filter(active),runs:runs.filter(active).sort((a:any,b:any)=>String(b.StartedAt).localeCompare(String(a.StartedAt))),periods:periods.filter(active),branches:branches.filter(active),trial,totalDebit:trial.reduce((x:number,a:any)=>x+a.Debit,0),totalCredit:trial.reduce((x:number,a:any)=>x+a.Credit,0)};
+}
+export async function ledgerFor(accountId?:string){const x=await glWorkspace();const lines=x.lines.filter((l:any)=>!accountId||l.AccountId===accountId);return lines.map((l:any)=>{const j=x.journals.find((j:any)=>j.Id===l.JournalId),a=x.coa.find((a:any)=>a.Id===l.AccountId);return {...l,JournalNumber:j?.JournalNumber,JournalDate:j?.JournalDate,ReferenceType:j?.ReferenceType,ReferenceId:j?.ReferenceId,AccountCode:a?.AccountCode,AccountName:a?.AccountName}}).filter((r:any)=>r.JournalNumber).sort((a:any,b:any)=>String(b.JournalDate).localeCompare(String(a.JournalDate)))}

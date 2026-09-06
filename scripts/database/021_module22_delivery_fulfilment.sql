@@ -1,0 +1,5 @@
+/* Risdel Books Module 22 - Delivery & Fulfilment. Future relational-provider reference. */
+IF NOT EXISTS (SELECT 1 FROM sys.schemas WHERE name='fulfilment') EXEC('CREATE SCHEMA fulfilment');
+GO
+CREATE TABLE fulfilment.Jobs (Id uniqueidentifier NOT NULL PRIMARY KEY, FulfilmentNumber nvarchar(40) NOT NULL UNIQUE, OrderId uniqueidentifier NULL, InvoiceId uniqueidentifier NULL, CustomerId uniqueidentifier NULL, BranchId uniqueidentifier NULL, WarehouseId uniqueidentifier NULL, FulfilmentType nvarchar(30) NOT NULL, Status nvarchar(40) NOT NULL, RecipientName nvarchar(200) NULL, RecipientPhone nvarchar(50) NULL, AddressLine1 nvarchar(250) NULL, AddressLine2 nvarchar(250) NULL, City nvarchar(100) NULL, State nvarchar(100) NULL, DeliveryFee decimal(18,2) NOT NULL DEFAULT 0, CourierId uniqueidentifier NULL, TrackingReference nvarchar(100) NULL, ScheduledDate date NULL, DeliveredAt datetime2 NULL, CreatedAt datetime2 NOT NULL DEFAULT sysutcdatetime(), CreatedBy uniqueidentifier NULL, UpdatedAt datetime2 NOT NULL DEFAULT sysutcdatetime(), UpdatedBy uniqueidentifier NULL, IsActive bit NOT NULL DEFAULT 1);
+GO

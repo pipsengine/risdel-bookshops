@@ -1,0 +1,4 @@
+-- Module 18 reference migration: Finance & Accounting Foundation
+-- Preserved for future relational-provider migration. Google Sheets GS-016 is active now.
+-- Target entities: ChartOfAccounts, Journals, JournalLines, Receivables, Payables,
+-- CashBankAccounts, CashBankTransactions, SupplierInvoices, SupplierPayments, AccountingPeriods.

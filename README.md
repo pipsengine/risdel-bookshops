@@ -1,8 +1,8 @@
-# Risdel Books
+# Risdel Bookshops
 
 **Current release:** v0.10.0 — Module 09 Customers & CRM
 
-Risdel Books is the cumulative management platform for Risdel Enterprise. Google Sheets is currently the default persistence provider; SQL Server migrations/provider history are preserved for future migration.
+Risdel Bookshops is the cumulative management platform for Risdel Enterprise. Google Sheets is currently the default persistence provider; SQL Server migrations/provider history are preserved for future migration.
 
 ## Quick start with Google Sheets
 1. Copy `.env.example` to `.env.local`.
@@ -15,7 +15,7 @@ See `docs/google-sheets/SETUP.md` for the full setup.
 
 ---
 
-# Risdel Books
+# Risdel Bookshops
 Business management platform for **Risdel Enterprise**.
 
 This repository follows an incremental-module model: every new module updates this same codebase and database architecture. Module 00 is the production foundation; future ZIP releases contain the complete application state, not isolated modules.
@@ -96,7 +96,7 @@ Run the existing Module 00 migrations first, then execute:
 scripts/database/003_module01_auth_security.sql
 ```
 
-With SQL Server configured, sign in using the bootstrap administrator from `.env.local`. If the account does not yet exist in `auth.Users`, Risdel Books provisions it as the protected `SUPER_ADMIN` and requires a password change. Once SQL Server is configured, the application does **not** bypass a database authentication failure using bootstrap credentials.
+With SQL Server configured, sign in using the bootstrap administrator from `.env.local`. If the account does not yet exist in `auth.Users`, Risdel Bookshops provisions it as the protected `SUPER_ADMIN` and requires a password change. Once SQL Server is configured, the application does **not** bypass a database authentication failure using bootstrap credentials.
 
 ### Module 01 routes
 - `/administration/security`
@@ -203,14 +203,14 @@ Module 08 extends the POS foundation with customer-facing commercial documents a
 - executive dashboard publication for open orders and receivables
 
 ### Google Sheets upgrade
-Run `npm run sheets:init` on the same existing Risdel Books spreadsheet. The schema becomes **GS-006** and adds the `Sales_Quotations`, `Sales_QuotationLines`, `Sales_Orders`, `Sales_OrderLines`, `Sales_Invoices`, `Sales_InvoiceLines`, `Sales_InvoicePayments`, `Sales_Fulfilments`, and `Sales_FulfilmentLines` worksheets. Existing data is preserved.
+Run `npm run sheets:init` on the same existing Risdel Bookshops spreadsheet. The schema becomes **GS-006** and adds the `Sales_Quotations`, `Sales_QuotationLines`, `Sales_Orders`, `Sales_OrderLines`, `Sales_Invoices`, `Sales_InvoiceLines`, `Sales_InvoicePayments`, `Sales_Fulfilments`, and `Sales_FulfilmentLines` worksheets. Existing data is preserved.
 
 
 ## Module 09 — Customers & CRM (v0.10.0)
 
 Module 09 expands the existing `CRM_Customers` record into the relationship-management workspace used by POS, quotations, sales orders and invoices. It adds customer types for individuals, parents/guardians, students, schools, corporate accounts, resellers, government, NGOs and religious organisations; contacts and addresses; account relationships; credit controls; purchase history and statements; notes and activities; segmentation; and loyalty ledgers.
 
-Run `npm run sheets:init` against the same private Risdel Books spreadsheet. The schema becomes **GS-007** and adds `CRM_CustomerContacts`, `CRM_CustomerAddresses`, `CRM_CustomerRelationships`, `CRM_CustomerNotes`, `CRM_CustomerActivities`, `CRM_Segments`, `CRM_CustomerSegments`, and `CRM_LoyaltyLedger`. Existing `CRM_Customers` rows and customer IDs are preserved while missing CRM columns are added.
+Run `npm run sheets:init` against the same private Risdel Bookshops spreadsheet. The schema becomes **GS-007** and adds `CRM_CustomerContacts`, `CRM_CustomerAddresses`, `CRM_CustomerRelationships`, `CRM_CustomerNotes`, `CRM_CustomerActivities`, `CRM_Segments`, `CRM_CustomerSegments`, and `CRM_LoyaltyLedger`. Existing `CRM_Customers` rows and customer IDs are preserved while missing CRM columns are added.
 
 ## Module 10 — Schools & Academic Sales (v0.11.0)
 Academic Sales extends CRM school accounts with session/class book lists, availability planning and school/parent order generation. Run `npm run sheets:init` to upgrade the existing workbook to GS-008.
@@ -222,4 +222,17 @@ Academic Sales extends CRM school accounts with session/class book lists, availa
 
 Supplier Management adds supplier profiles, contacts, addresses, commercial terms, preferred-supplier controls, product and publisher relationships, performance reviews, and supplier document metadata.
 
-Google Sheets schema: **GS-010**. Continue using the same private Risdel Books spreadsheet and run `npm run sheets:init` after upgrading.
+Google Sheets schema: **GS-010**. Continue using the same private Risdel Bookshops spreadsheet and run `npm run sheets:init` after upgrading.
+
+## Module 17 — Pricing, Discounts & Promotions (v0.18.0)
+Centralized retail/school/institutional/reseller price groups, price lists, promotions and coupons. Run `npm run sheets:init` to upgrade the existing workbook to GS-015.
+
+## Module 20 — General Ledger & Automated Accounting Posting (v0.21.0)
+Module 20 adds the Posting Center, balanced manual and automated journals, General Ledger inquiry, Trial Balance, source-document traceability, posting-run history and accounting posting rules. Google Sheets schema version: GS-018.
+
+Run `npm run sheets:init` after upgrading so the same private workbook receives the Module 20 sheets and permissions.
+
+## Module 21 — Expenses, Petty Cash & Operating Cost Management (v0.22.0)
+Module 21 adds controlled operating-expense requests, approval/payment workflows, expense categories and GL mappings, evidence references, petty cash funds/custodians, replenishment controls, fund transaction ledgers, cash/bank integration, automatic balanced accounting journals, and dashboard exception metrics. Google Sheets schema version: GS-019.
+
+Run `npm run sheets:init` after upgrading so the same private workbook receives the Module 21 sheets, seeded expense categories, Petty Cash account 1010 and permissions.

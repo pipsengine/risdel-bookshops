@@ -1,0 +1,1 @@
+import Link from "next/link";const tabs=[["Overview","/fulfilment"],["Jobs","/fulfilment/jobs"],["Couriers","/fulfilment/couriers"],["Returns","/fulfilment/returns"]] as const;export function FulfilmentTabs({active}:{active:string}){return <div className="catalogue-tabs">{tabs.map(([l,h])=><Link key={l} href={h} className={active===l?"active":""}>{l}</Link>)}</div>}

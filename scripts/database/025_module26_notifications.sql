@@ -1,0 +1,4 @@
+-- Module 26 relational migration reference: Notifications, Alerts & Communication Centre
+-- Target entities: NotificationRules, NotificationRecipients, NotificationTemplates,
+-- NotificationQueue, NotificationDeliveryLogs, NotificationUserPreferences, NotificationChannels.
+-- System_Notifications remains the canonical notification header for continuity.

@@ -1,4 +1,4 @@
-# Risdel Books v0.25.0 — Module 24 Loyalty, Membership & Customer Rewards
+# Risdel Bookshops v0.25.0 — Module 24 Loyalty, Membership & Customer Rewards
 
 Cumulative update of v0.24.0.
 

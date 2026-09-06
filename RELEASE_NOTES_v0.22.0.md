@@ -1,4 +1,4 @@
-# Risdel Books v0.22.0 — Module 21
+# Risdel Bookshops v0.22.0 — Module 21
 
 ## Expenses, Petty Cash & Operating Cost Management
 

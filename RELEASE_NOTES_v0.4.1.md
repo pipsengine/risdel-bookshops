@@ -1,4 +1,4 @@
-# Risdel Books v0.4.1 — Google Sheets Data Provider
+# Risdel Bookshops v0.4.1 — Google Sheets Data Provider
 
 This is a cumulative infrastructure update to v0.4.0, not a new application.
 

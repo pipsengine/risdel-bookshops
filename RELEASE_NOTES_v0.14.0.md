@@ -1,4 +1,4 @@
-# Risdel Books v0.14.0 — Module 13 Purchasing & Procurement
+# Risdel Bookshops v0.14.0 — Module 13 Purchasing & Procurement
 
 Cumulative update on v0.13.0.
 

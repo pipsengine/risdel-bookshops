@@ -1,4 +1,4 @@
-# Risdel Books v0.4.0 — Module 03 Executive Dashboard
+# Risdel Bookshops v0.4.0 — Module 03 Executive Dashboard
 
 This is a cumulative release built directly on v0.3.0.
 

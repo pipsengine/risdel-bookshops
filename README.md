@@ -236,3 +236,11 @@ Run `npm run sheets:init` after upgrading so the same private workbook receives 
 Module 21 adds controlled operating-expense requests, approval/payment workflows, expense categories and GL mappings, evidence references, petty cash funds/custodians, replenishment controls, fund transaction ledgers, cash/bank integration, automatic balanced accounting journals, and dashboard exception metrics. Google Sheets schema version: GS-019.
 
 Run `npm run sheets:init` after upgrading so the same private workbook receives the Module 21 sheets, seeded expense categories, Petty Cash account 1010 and permissions.
+
+
+## Current release
+Risdel Bookshops v0.28.0 includes Module 27 — Advanced Catalogue & Inventory Import. The onboarding centre accepts the bundled Nigeria Inventory Master Excel workbook and can validate catalogue, taxonomy and opening stock before posting.
+
+## Module 31 — Tax, Fiscal Controls & Nigeria Compliance
+
+Risdel Bookshops now includes a configurable Nigeria-focused tax workspace for VAT, educational zero-rating, WHT profiles/transactions, VAT working returns and fiscalization readiness. The Google Sheets schema version is **GS-029**. Run `npm run sheets:init` against the same existing workbook after upgrading.

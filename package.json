@@ -1,6 +1,6 @@
 {
   "name": "risdel-bookshops",
-  "version": "0.26.0",
+  "version": "0.32.0",
   "private": true,
   "scripts": {
     "dev": "next dev",
@@ -18,7 +18,8 @@
     "react": "^19.1.1",
     "react-dom": "^19.1.1",
     "googleapis": "^144.0.0",
-    "dotenv": "^16.4.5"
+    "dotenv": "^16.4.5",
+    "xlsx": "^0.18.5"
   },
   "devDependencies": {
     "@types/node": "^22.15.0",

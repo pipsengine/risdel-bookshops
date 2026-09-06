@@ -1,4 +1,4 @@
-# Risdel Books v0.12.0 — Module 11 Reservations & Special Orders
+# Risdel Bookshops v0.12.0 — Module 11 Reservations & Special Orders
 
 Cumulative update on v0.11.0.
 

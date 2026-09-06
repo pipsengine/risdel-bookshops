@@ -1,4 +1,4 @@
-# Risdel Books v0.8.0 — Module 07 Point of Sale
+# Risdel Bookshops v0.8.0 — Module 07 Point of Sale
 
 Module 07 is a cumulative update of v0.7.0.
 

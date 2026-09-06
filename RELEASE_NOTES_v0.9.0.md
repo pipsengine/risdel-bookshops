@@ -1,4 +1,4 @@
-# Risdel Books v0.9.0 — Module 08 Sales Orders, Quotations & Invoices
+# Risdel Bookshops v0.9.0 — Module 08 Sales Orders, Quotations & Invoices
 
 ## Added
 - Customer quotation register and professional quotation builder.
@@ -26,4 +26,4 @@
 - Sales_Fulfilments
 - Sales_FulfilmentLines
 
-Run `npm run sheets:init` against the existing Risdel Books spreadsheet. The initializer is additive and must not be run against a new spreadsheet for each module.
+Run `npm run sheets:init` against the existing Risdel Bookshops spreadsheet. The initializer is additive and must not be run against a new spreadsheet for each module.

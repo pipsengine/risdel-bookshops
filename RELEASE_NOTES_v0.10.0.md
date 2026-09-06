@@ -1,4 +1,4 @@
-# Risdel Books v0.10.0 — Module 09 Customers & CRM
+# Risdel Bookshops v0.10.0 — Module 09 Customers & CRM
 
 Cumulative update of v0.9.0. Expands the existing POS customer master into a full CRM workspace for individuals, parents, students, schools, corporate accounts, resellers, government/NGO and religious organisations.
 

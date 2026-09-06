@@ -1,4 +1,4 @@
-# Risdel Books v0.26.0 — Module 25 Approval Workflow Engine
+# Risdel Bookshops v0.26.0 — Module 25 Approval Workflow Engine
 
 This cumulative release introduces a central Approval Centre without replacing the business source records that already govern purchasing, finance, returns, supplier invoices, stocktaking and petty cash.
 

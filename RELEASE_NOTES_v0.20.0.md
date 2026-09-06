@@ -1,4 +1,4 @@
-# Risdel Books v0.20.0 — Module 19
+# Risdel Bookshops v0.20.0 — Module 19
 ## Supplier Invoices, Accounts Payable & Three-Way Matching
 - Supplier invoice register with duplicate supplier-invoice protection.
 - PO/GRN/invoice three-way matching and configurable 1%/NGN1 tolerance foundation.

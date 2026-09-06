@@ -1,4 +1,4 @@
-# Risdel Books v0.5.0 — Module 04 Product & Book Catalogue
+# Risdel Bookshops v0.5.0 — Module 04 Product & Book Catalogue
 
 Cumulative update on v0.4.1 Google Sheets provider.
 
@@ -16,4 +16,4 @@ Cumulative update on v0.4.1 Google Sheets provider.
 - Preserved SQL Server Module 04 schema for future provider migration.
 
 ## Google Sheets schema
-Run `npm run sheets:init` against the existing private Risdel Books spreadsheet. It is idempotent and adds the Catalogue_* worksheets without recreating existing data.
+Run `npm run sheets:init` against the existing private Risdel Bookshops spreadsheet. It is idempotent and adds the Catalogue_* worksheets without recreating existing data.

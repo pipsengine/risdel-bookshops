@@ -1,0 +1,1 @@
+import Link from "next/link";export function DocumentsTabs({active}:{active:string}){const tabs=[["Document Centre","/documents"],["My Documents","/documents/my"],["Recent","/documents/recent"],["Archived","/documents/archived"]];return <div className="tabs">{tabs.map(([n,h])=><Link key={n} className={`tab ${active===n?"active":""}`} href={h}>{n}</Link>)}</div>}

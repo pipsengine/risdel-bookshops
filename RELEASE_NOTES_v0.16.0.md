@@ -1,4 +1,4 @@
-# Risdel Books v0.16.0 — Module 15 Customer Returns & Refunds
+# Risdel Bookshops v0.16.0 — Module 15 Customer Returns & Refunds
 
 Cumulative update on v0.15.0.
 

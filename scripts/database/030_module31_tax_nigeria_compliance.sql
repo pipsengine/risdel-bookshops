@@ -1,0 +1,17 @@
+/* Risdel Books Module 31 - Tax, Fiscal Controls & Nigeria Compliance
+   Future relational-database migration reference. Google Sheets remains active currently. */
+IF NOT EXISTS (SELECT 1 FROM sys.schemas WHERE name='tax') EXEC('CREATE SCHEMA tax');
+GO
+CREATE TABLE tax.TaxCodes (
+ Id uniqueidentifier NOT NULL PRIMARY KEY, Code nvarchar(50) NOT NULL UNIQUE, Name nvarchar(200) NOT NULL,
+ TaxType nvarchar(30) NOT NULL, Rate decimal(9,4) NOT NULL DEFAULT 0, Treatment nvarchar(30) NOT NULL,
+ AppliesTo nvarchar(100) NULL, Recoverable bit NOT NULL DEFAULT 0, EffectiveFrom date NULL, EffectiveTo date NULL,
+ LegalReference nvarchar(500) NULL, Description nvarchar(1000) NULL, IsDefault bit NOT NULL DEFAULT 0,
+ CreatedAt datetime2 NOT NULL DEFAULT sysutcdatetime(), CreatedBy uniqueidentifier NULL, UpdatedAt datetime2 NULL, UpdatedBy uniqueidentifier NULL, IsActive bit NOT NULL DEFAULT 1
+);
+CREATE TABLE tax.CustomerProfiles (Id uniqueidentifier PRIMARY KEY, CustomerId uniqueidentifier NOT NULL, TIN nvarchar(50), VATRegistrationNumber nvarchar(50), TaxStatus nvarchar(30), DefaultTaxCode nvarchar(50), ExemptionId uniqueidentifier NULL, WHTApplicable bit NOT NULL DEFAULT 0, Notes nvarchar(1000), CreatedAt datetime2, CreatedBy uniqueidentifier, UpdatedAt datetime2, UpdatedBy uniqueidentifier, IsActive bit NOT NULL DEFAULT 1);
+CREATE TABLE tax.SupplierProfiles (Id uniqueidentifier PRIMARY KEY, SupplierId uniqueidentifier NOT NULL, TIN nvarchar(50), VATRegistrationNumber nvarchar(50), TaxStatus nvarchar(30), DefaultTaxCode nvarchar(50), WHTCategory nvarchar(100), WHTRate decimal(9,4), WHTApplicable bit NOT NULL DEFAULT 0, Notes nvarchar(1000), CreatedAt datetime2, CreatedBy uniqueidentifier, UpdatedAt datetime2, UpdatedBy uniqueidentifier, IsActive bit NOT NULL DEFAULT 1);
+CREATE TABLE tax.VATReturns (Id uniqueidentifier PRIMARY KEY, ReturnNumber nvarchar(50) UNIQUE NOT NULL, PeriodId uniqueidentifier NULL, PeriodStart date, PeriodEnd date, OutputVAT decimal(19,4), InputVAT decimal(19,4), NetVAT decimal(19,4), ZeroRatedSales decimal(19,4), ExemptSales decimal(19,4), TaxableSales decimal(19,4), Status nvarchar(30), FiledAt datetime2 NULL, FiledBy uniqueidentifier NULL, Reference nvarchar(100), Notes nvarchar(1000), CreatedAt datetime2, CreatedBy uniqueidentifier, UpdatedAt datetime2, UpdatedBy uniqueidentifier, IsActive bit NOT NULL DEFAULT 1);
+CREATE TABLE tax.WHTTransactions (Id uniqueidentifier PRIMARY KEY, TransactionNumber nvarchar(50) UNIQUE NOT NULL, SupplierId uniqueidentifier, SupplierInvoiceId uniqueidentifier, PaymentId uniqueidentifier NULL, WHTCode nvarchar(50), TaxableBase decimal(19,4), Rate decimal(9,4), Amount decimal(19,4), Status nvarchar(30), CertificateNumber nvarchar(100), DeductedAt datetime2, RemittedAt datetime2 NULL, RemittanceId uniqueidentifier NULL, CreatedAt datetime2, CreatedBy uniqueidentifier, UpdatedAt datetime2, UpdatedBy uniqueidentifier, IsActive bit NOT NULL DEFAULT 1);
+CREATE TABLE tax.FiscalDocuments (Id uniqueidentifier PRIMARY KEY, DocumentType nvarchar(50), SourceId uniqueidentifier, SourceNumber nvarchar(100), FiscalNumber nvarchar(100), FiscalStatus nvarchar(30), TaxableAmount decimal(19,4), TaxAmount decimal(19,4), ZeroRatedAmount decimal(19,4), ExemptAmount decimal(19,4), CurrencyCode char(3), FiscalizedAt datetime2 NULL, ProviderReference nvarchar(255), Response nvarchar(max), CreatedAt datetime2, CreatedBy uniqueidentifier, UpdatedAt datetime2, UpdatedBy uniqueidentifier, IsActive bit NOT NULL DEFAULT 1);
+GO

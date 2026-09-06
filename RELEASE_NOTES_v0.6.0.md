@@ -1,4 +1,4 @@
-# Risdel Books v0.6.0 — Module 05
+# Risdel Bookshops v0.6.0 — Module 05
 
 ## Academic & Catalogue Master Data Expansion
 
@@ -17,4 +17,4 @@ This cumulative release extends v0.5.0 without rebuilding prior modules.
 - SQL Server migration `scripts/database/007_module05_academic_master.sql` retained for a future relational provider.
 
 ### Google Sheets upgrade
-Run `npm run sheets:init` against the same existing private Risdel Books spreadsheet. The initializer is idempotent and adds only missing tabs/columns/seeds. It does not recreate prior sheets.
+Run `npm run sheets:init` against the same existing private Risdel Bookshops spreadsheet. The initializer is idempotent and adds only missing tabs/columns/seeds. It does not recreate prior sheets.

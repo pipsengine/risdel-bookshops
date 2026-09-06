@@ -1,4 +1,4 @@
-# Risdel Books v0.11.0 — Module 10: Schools & Academic Sales
+# Risdel Bookshops v0.11.0 — Module 10: Schools & Academic Sales
 
 Cumulative update on v0.10.0.
 
@@ -22,4 +22,4 @@ Cumulative update on v0.10.0.
 - Academic_Orders
 - Academic_OrderLines
 
-Run `npm run sheets:init` against the existing Risdel Books spreadsheet. Do not create a new spreadsheet.
+Run `npm run sheets:init` against the existing Risdel Bookshops spreadsheet. Do not create a new spreadsheet.

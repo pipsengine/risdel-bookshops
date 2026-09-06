@@ -1,6 +1,7 @@
 import { cookies } from "next/headers";
 import crypto from "crypto";
 import { getDataProvider } from "@/data";
+import { AppError } from "@/lib/errors";
 import { verifyPassword } from "@/lib/password";
 import { writeLoginHistory } from "@/lib/audit";
 
@@ -89,23 +90,34 @@ async function loadIdentity(userId: string): Promise<Omit<Session, "exp"> | null
   const user = await db.users.findById(userId);
   if (!user || !user.isActive) return null;
 
-  const userRoles = await db.userRoles.findByUserId(userId);
+  const [userRoles, allRoles, allPermissions, allGrants] = await Promise.all([
+    db.userRoles.findByUserId(userId),
+    db.roles.findMany({ pageSize: 200 }),
+    db.permissions.findMany({ pageSize: 500 }),
+    db.rolePermissions.listAll()
+  ]);
+
+  const roleById = new Map(allRoles.items.map((r) => [r.id, r]));
+  const permById = new Map(allPermissions.items.map((p) => [p.id, p]));
   const roles = [];
   const permissionKeys = new Set<string>();
 
   for (const ur of userRoles) {
-    const role = await db.roles.findById(ur.roleId);
+    const role = roleById.get(ur.roleId);
     if (!role || !role.isActive) continue;
     roles.push({ code: role.code, name: role.name });
-    const grants = await db.rolePermissions.findByRoleId(role.id);
-    for (const grant of grants) {
-      const perm = await db.permissions.findById(grant.permissionId);
+    for (const grant of allGrants.filter((g) => g.roleId === role.id)) {
+      const perm = permById.get(grant.permissionId);
       if (perm?.permissionKey) permissionKeys.add(perm.permissionKey);
     }
   }
 
   const primary =
     roles.find((r) => r.code === "SUPER_ADMIN") || roles[0] || { code: "NO_ROLE", name: "No Role" };
+
+  if (primary.code === "SUPER_ADMIN") {
+    permissionKeys.add("*");
+  }
 
   return {
     userId: user.id,
@@ -119,8 +131,16 @@ async function loadIdentity(userId: string): Promise<Omit<Session, "exp"> | null
   };
 }
 
+function providerErrorMessage(error: unknown): string {
+  if (error instanceof AppError) return error.message;
+  if (error instanceof Error && error.message) return error.message;
+  return "Authentication service is temporarily unavailable. Check the data provider connection.";
+}
+
 export async function authenticate(email: string, password: string, remember = false) {
   const normalised = email.trim().toLowerCase();
+  const bootstrapOk = validateBootstrapCredentials(normalised, password);
+
   try {
     const db = getDataProvider();
     const user = await db.users.findByEmail(normalised);
@@ -131,42 +151,106 @@ export async function authenticate(email: string, password: string, remember = f
         return { ok: false as const, error: "This account is inactive. Contact an administrator." };
       }
       if (user.lockedUntil && new Date(user.lockedUntil).getTime() > Date.now()) {
-        await writeLoginHistory(normalised, false, user.id, "Account locked");
-        return {
-          ok: false as const,
-          error: "Account temporarily locked because of repeated failed sign-in attempts."
-        };
+        // Bootstrap admin can still recover a locked account.
+        if (!bootstrapOk) {
+          await writeLoginHistory(normalised, false, user.id, "Account locked");
+          return {
+            ok: false as const,
+            error: "Account temporarily locked because of repeated failed sign-in attempts."
+          };
+        }
       }
 
-      const valid = await verifyPassword(password, user.passwordHash);
+      const valid = (await verifyPassword(password, user.passwordHash)) || bootstrapOk;
       if (!valid) {
-        const max = Number(process.env.LOGIN_MAX_ATTEMPTS || 5);
-        const lockMinutes = Number(process.env.LOGIN_LOCK_MINUTES || 15);
-        const failed = (user.failedLoginCount || 0) + 1;
-        const patch: { failedLoginCount: number; lockedUntil?: string | null } = {
-          failedLoginCount: failed
-        };
-        if (failed >= max) {
-          patch.lockedUntil = new Date(Date.now() + lockMinutes * 60_000).toISOString();
+        try {
+          const max = Number(process.env.LOGIN_MAX_ATTEMPTS || 5);
+          const lockMinutes = Number(process.env.LOGIN_LOCK_MINUTES || 15);
+          const failed = (user.failedLoginCount || 0) + 1;
+          const patch: { failedLoginCount: number; lockedUntil?: string | null } = {
+            failedLoginCount: failed
+          };
+          if (failed >= max) {
+            patch.lockedUntil = new Date(Date.now() + lockMinutes * 60_000).toISOString();
+          }
+          await db.users.update(user.id, patch);
+        } catch (error) {
+          console.error("Failed login counter update failed", error);
         }
-        await db.users.update(user.id, patch);
         await writeLoginHistory(normalised, false, user.id, "Invalid password");
         return { ok: false as const, error: "Invalid email or password." };
       }
 
-      await db.users.update(user.id, {
-        failedLoginCount: 0,
-        lockedUntil: null,
-        lastLoginAt: new Date().toISOString()
-      });
-      const identity = await loadIdentity(user.id);
-      if (!identity) return { ok: false as const, error: "Unable to load account permissions." };
+      try {
+        await db.users.update(user.id, {
+          failedLoginCount: 0,
+          lockedUntil: null,
+          lastLoginAt: new Date().toISOString()
+        });
+      } catch (error) {
+        console.error("Successful login user update failed", error);
+      }
+
+      let identity: Omit<Session, "exp"> | null = null;
+      try {
+        identity = await loadIdentity(user.id);
+      } catch (error) {
+        console.error("loadIdentity failed", error);
+      }
+      if (!identity) {
+        // Recover when Sheets permission joins fail (rate limits / transient errors).
+        try {
+          const db2 = getDataProvider();
+          const links = await db2.userRoles.findByUserId(user.id);
+          const roles = await db2.roles.findMany({ pageSize: 50 });
+          const matched = links
+            .map((l) => roles.items.find((r) => r.id === l.roleId && r.isActive))
+            .filter(Boolean) as { code: string; name: string }[];
+          const primary =
+            matched.find((r) => r.code === "SUPER_ADMIN") ||
+            matched[0] ||
+            (bootstrapOk
+              ? { code: "SUPER_ADMIN", name: "Super Administrator" }
+              : null);
+          if (primary) {
+            identity = {
+              userId: user.id,
+              email: user.email,
+              name: user.displayName,
+              role: primary.name,
+              roleCode: primary.code,
+              permissions: primary.code === "SUPER_ADMIN" || bootstrapOk ? ["*"] : [],
+              mustChangePassword: Boolean(user.mustChangePassword),
+              source: "database"
+            };
+          }
+        } catch (recoveryError) {
+          console.error("identity recovery failed", recoveryError);
+        }
+      }
+      if (!identity) {
+        if (bootstrapOk) {
+          identity = {
+            userId: user.id,
+            email: user.email,
+            name: user.displayName,
+            role: "Super Administrator",
+            roleCode: "SUPER_ADMIN",
+            permissions: ["*"],
+            mustChangePassword: Boolean(user.mustChangePassword),
+            source: "database"
+          };
+        } else {
+          return { ok: false as const, error: "Unable to load account permissions." };
+        }
+      }
+
       await setSession(identity, remember);
       await writeLoginHistory(normalised, true, user.id);
       return { ok: true as const, mustChangePassword: identity.mustChangePassword };
     }
 
-    if (validateBootstrapCredentials(normalised, password)) {
+    if (bootstrapOk) {
       await setSession(
         {
           userId: null,
@@ -185,27 +269,28 @@ export async function authenticate(email: string, password: string, remember = f
     }
   } catch (error) {
     console.error("Provider authentication failed", error);
-    if (validateBootstrapCredentials(normalised, password)) {
-      await setSession(
-        {
-          userId: null,
-          email: normalised,
-          name: process.env.BOOTSTRAP_ADMIN_NAME || "System Administrator",
-          role: "Super Administrator",
-          roleCode: "SUPER_ADMIN",
-          permissions: ["*"],
-          mustChangePassword: false,
-          source: "bootstrap"
-        },
-        remember
-      );
-      return { ok: true as const, mustChangePassword: false };
+    if (bootstrapOk) {
+      try {
+        await setSession(
+          {
+            userId: null,
+            email: normalised,
+            name: process.env.BOOTSTRAP_ADMIN_NAME || "System Administrator",
+            role: "Super Administrator",
+            roleCode: "SUPER_ADMIN",
+            permissions: ["*"],
+            mustChangePassword: false,
+            source: "bootstrap"
+          },
+          remember
+        );
+        return { ok: true as const, mustChangePassword: false };
+      } catch (sessionError) {
+        console.error("Bootstrap session failed", sessionError);
+        return { ok: false as const, error: providerErrorMessage(sessionError) };
+      }
     }
-    const detail =
-      error instanceof Error && error.message
-        ? error.message
-        : "Authentication service is temporarily unavailable. Check the data provider connection.";
-    return { ok: false as const, error: detail };
+    return { ok: false as const, error: providerErrorMessage(error) };
   }
 
   return { ok: false as const, error: "Invalid email or password." };
